@@ -42,12 +42,13 @@ async def get_one_product(product_id: int, db: AsyncSession = Depends(get_db)):
 
 @router.post("/create", response_model=ProductResponse, status_code=status.HTTP_201_CREATED)# Путь: products/create | Response_model это класс ProductResponse в products/schemas.py | status_code это это код 201 который сообщает об успешном создании
 async def create_product(product_data: ProductCreate, db: AsyncSession = Depends(get_db)):
-    images_data = product_data.images # Список допю фотографий, если их нет будет пустой список
+    images_data = product_data.images # Список доп. фотографий, если их нет будет пустой список
     product_dict = product_data.model_dump(exclude={"images"}) # Превращение объекта схемы в словарь без  списка картинок (images_data)
     new_product = Product(
-        title=product_data.title,            # Название
-        description=product_data.description,  # Описание
-        price=product_data.price,              # Цена
+        title=product_data.title, # Название
+        description=product_data.description, # Описание
+        price=product_data.price, # Цена
+        quantity=product_data.quantity, # Колличество
         preview_image=product_data.preview_image # Превью 
     )
     for img in images_data:  # Запуск цикла, если есть доп. фото
@@ -56,7 +57,7 @@ async def create_product(product_data: ProductCreate, db: AsyncSession = Depends
         
     db.add(new_product) # Формирование запрорса
     await db.commit() # Создание записи в бд
-    await db.refresh(new_product)
+    await db.refresh(new_product, attribute_names=["images"])
     
     return new_product
     

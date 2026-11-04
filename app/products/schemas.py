@@ -18,14 +18,16 @@ class ProductImageResponse(ProductImageBase):
 class ProductBase(BaseModel):
     title: str # Название товара
     description: Optional[str] = None # Описание товара
-    price: float # Цена товара
+    price: int # Цена товара
+    quantity: int # Колличество товара
 
 
 # Схема товара котоая возвращается. Уже хранит title, description и price т.к. наследуетсчя от ProductBase
 class ProductResponse(ProductBase):
 #   title: str # Название товара
 #   description: Optional[str] = None # Описание товара
-#   price: float # Цена товара
+#   price: int # Цена товара
+#   quantity: int # Колличество товара
     id: int # Id товара
     preview_image: Optional[str] = None # Путь к превью
     images: List[ProductImageResponse] = [] # Список объектов, в объекте хранится id фото, путь к фото, id продукта
@@ -35,7 +37,8 @@ class ProductResponse(ProductBase):
 class ProductShortResponse(ProductBase):
 #   title: str # Название товара
 #   description: Optional[str] = None # Описание товара
-#   price: float # Цена товара
+#   price: int # Цена товара
+#   quantity: int # Колличество товара
     id: int
     preview_image: Optional[str] = None
     model_config = ConfigDict(from_attributes=True)
@@ -50,6 +53,7 @@ class ProductImageCreate(ProductImageBase):
 class ProductCreate(ProductBase):
 #   title: str # Название товара
 #   description: Optional[str] = None # Описание товара
-#   price: float # Цена товара
+#   price: int # Цена товара
+#   quantity: int # Колличество товара
     preview_image: Optional[str] = None    # Путь к главной фотографии карточки
     images: List[ProductImageCreate] = []  # Список картинок

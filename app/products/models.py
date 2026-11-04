@@ -10,6 +10,7 @@ class Product(Base):
     title: Mapped[str] = mapped_column(String(250), nullable=False) # Название товара
     description: Mapped[Optional[str]] = mapped_column(String(2000)) # Описание товара
     price: Mapped[int] = mapped_column(Integer, nullable=False) # Цена товара
+    quantity: Mapped[int] = mapped_column(Integer, nullable=False) # Колличество товара
     preview_image: Mapped[Optional[str]] = mapped_column(String(500), default=None) # Путь к главной фотке карточки товара
     images: Mapped[List["ProductImage"]] = relationship(
         back_populates="product", 

@@ -12,7 +12,7 @@ router = APIRouter(prefix="/users", tags=["Пользователи"])
 
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 async def register_user(user_data: UserCreate, db: AsyncSession = Depends(get_db)):
-    # 1. Объединяем проверки в один запрос для оптимизации
+    # Проверки в одном запросе
     conditions = [
         User.name == user_data.name,
         User.email == user_data.email
@@ -24,7 +24,7 @@ async def register_user(user_data: UserCreate, db: AsyncSession = Depends(get_db
     result = await db.execute(query)
     existing_users = result.scalars().all()
 
-    # Проверяем, что именно совпало, чтобы дать точный ответ
+    # Проверка что именно совпало
     for existing_user in existing_users:
         if existing_user.name == user_data.name:
             raise HTTPException(
@@ -42,12 +42,12 @@ async def register_user(user_data: UserCreate, db: AsyncSession = Depends(get_db
                 detail="Пользователь с таким номером телефона уже зарегистрирован"
             )
 
-    # 2. Хеширование пароля
+    # Хеширование пароля
     password_bytes = user_data.password.encode('utf-8')
     salt = bcrypt.gensalt()
     hashed_password_str = bcrypt.hashpw(password_bytes, salt).decode('utf-8')
 
-    # 3. Создание объекта
+    # Создание объекта
     new_user = User(
         name=user_data.name,
         email=user_data.email,
@@ -56,7 +56,7 @@ async def register_user(user_data: UserCreate, db: AsyncSession = Depends(get_db
         hashed_password=hashed_password_str
     )
     
-    #Сохранение в бд
+    # Сохранение в бд
     db.add(new_user)
     await db.commit()
     await db.refresh(new_user)
