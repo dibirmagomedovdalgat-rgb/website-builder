@@ -1,0 +1,13 @@
+Как запустить:
+
+Создаем чистое виртуальное окружение
+python -m venv .venv
+
+Активируем его
+.venv\Scripts\activate
+
+Устанавливаем все зависимости
+pip install -r requirements.txt
+
+запуск сервера
+.venv\Scripts\python -m uvicorn app.main:app --reload
