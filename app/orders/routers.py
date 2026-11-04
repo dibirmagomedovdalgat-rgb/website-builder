@@ -30,16 +30,24 @@ async def create_order(
     # Если корзина пуста
     if not basket_items:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, # Код ошибка
+            status_code=status.HTTP_400_BAD_REQUEST, # Код ошибки
             detail="Невозможно оформить заказ: ваша корзина пуста" # Сообщение 
         )
 
-    # Oбщуая стоимость заказа
+    # Проверка достаточно ли товара
+    for item in basket_items:
+        if item.product.quantity < item.quantity:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Недостаточно товара '{item.product.title}' на складе. Доступно: {item.product.quantity} шт."
+            )
+
+    # Общая стоимость заказа
     total_price = 0
     for item in basket_items: # Цикл в корзине
         total_price += item.product.price * item.quantity # Умножение цены товара на его количество и прибавление к счетчику 
 
-    # 3. Создаем основной заказ (срез данных профиля юзера пишем сюда)
+    # Создание заказа, данные пользователя заполняются по его профилю
     new_order = Order(
         user_id=current_user.id,        # Id юзера 
         status=OrderStatus.NEW,         # Статус
@@ -47,14 +55,14 @@ async def create_order(
         user_phone=current_user.phone,  # Номер телефона
         user_email=current_user.email,  # Email
         total_price=total_price,        # Итоговая сумма
-        delivery_address=order_data.delivery_address, #Адрес доставки(По дефолту самовывоз)
+        delivery_address=order_data.delivery_address, # Адрес доставки (По дефолту самовывоз)
         comment=order_data.comment # Комментарий к заказу
     )
     
     db.add(new_order)
     await db.flush()  # Пока что запись в черновике
 
-    # Запуск цикла по всем элементам, которые мы вытащили из корзины пользователя
+    # Запуск цикла по всем элементам, которые вытащили из корзины пользователя
     for item in basket_items:
         order_item = OrderItem(
             order_id=new_order.id, # Id заказа
@@ -64,12 +72,15 @@ async def create_order(
             quantity=item.quantity  # Количество
         )
         db.add(order_item)
+        
+        # Убавляем колличество товара так как его заказали
+        item.product.quantity -= item.quantity
 
-    delete_basket_query = delete(BasketItem).where(BasketItem.user_id == current_user.id) # Отчистка корзины пользователя в бд
+    delete_basket_query = delete(BasketItem).where(BasketItem.user_id == current_user.id) # Очистка корзины пользователя в бд
     await db.execute(delete_basket_query)
     await db.commit() # Сохранение
     
-    # Подгружаем созданные items для корректного ответа схемы OrderFullResponse
+    # Загрузка созданных items для корректного ответа схемы OrderFullResponse
     order_full_query = (
         select(Order)
         .where(Order.id == new_order.id) # Только что созданный заказ по Id
@@ -81,18 +92,22 @@ async def create_order(
     return order_to_return
 
 
-# 2. ПОЛУЧЕНИЕ ИСТОРИИ ЗАКАЗОВ (КРАТКО)
+# Получение истории заказов с краткой инфой
 @router.get("", response_model=list[OrderShortResponse])
 async def get_my_orders(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user) # Какой именно пользователь делает запрос
 ):
-    query = select(Order).where(Order.user_id == current_user.id).order_by(Order.created_at.desc()) # Только те заказы, которые принадлежат текущему пользователю
+    # Добавлен .order_by() для сортировки, если у вас в модели есть поле серийного времени (например, created_at)
+    query = select(Order).where(Order.user_id == current_user.id)
+    if hasattr(Order, 'created_at'):
+        query = query.order_by(Order.created_at.desc())
+        
     result = await db.execute(query) # Запрос бд
     return result.scalars().all()
 
 
-# 3. ПОЛУЧЕНИЕ ДЕТАЛЕЙ ОДНОГО ЗАКАЗА (ПОЛНО)
+# Получение деталей одного заказа с полной инфой
 @router.get("/{order_id}", response_model=OrderFullResponse)
 async def get_order_details(
     order_id: int,
@@ -101,11 +116,11 @@ async def get_order_details(
 ):
     query = (
         select(Order)
-        .where(Order.id == order_id, Order.user_id == current_user.id) # Поиск заказа по его Id и проверка что он пренадлежит именно ему
+        .where(Order.id == order_id, Order.user_id == current_user.id) # Поиск заказа по его Id и проверка, что он принадлежит именно ему
         .options(selectinload(Order.items))
     )
     result = await db.execute(query) # Запрос в бд
-    order = result.scalar_one_or_none() # Вернет объект order а если что-то пошло не так то None
+    order = result.scalar_one_or_none() # Вернет объект order, а если что-то пошло не так — то None
 
     # Если order это None 
     if not order:

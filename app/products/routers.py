@@ -29,7 +29,6 @@ async def get_one_product(product_id: int, db: AsyncSession = Depends(get_db)):
         .where(Product.id == product_id) # Поиск по определенному Id
         .options(joinedload(Product.images)) # Запрос доп. фотографий
     )
-    
     result = await db.execute(query) # Выполнение запроса
     product = result.scalars().unique().first() # Ответ бд
     
