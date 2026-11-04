@@ -1,4 +1,3 @@
-# app/basket/routers.py
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import joinedload
@@ -19,8 +18,6 @@ async def add_item_to_basket(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    if quantity <= 0:
-        raise HTTPException(status_code=400, detail="Количество должно быть больше 0")
 
     # Проверка существует ли товар
     product_result = await db.execute(select(Product).where(Product.id == product_id))
@@ -33,13 +30,28 @@ async def add_item_to_basket(
         BasketItem.product_id == product_id
     )
     basket_result = await db.execute(basket_query)
-    existing_item = basket_result.scalars().first()\
+    existing_item = basket_result.scalars().first()
     
     # Если товар уже в корзине то он просто плюсуется к существующему
     if existing_item:
-        existing_item.quantity += quantity
+        new_quantity = existing_item.quantity + quantity
+        
+        # Если колличество 0 или оно ушло в минус, удаляется товар
+        if new_quantity <= 0:
+            await db.delete(existing_item)
+            await db.commit()
+            return {"message": "Товар полностью удален из корзины"}
+        
+        # Иначе просто обновляется колличество
+        existing_item.quantity = new_quantity
         await db.commit()
         return {"message": f"Количество товара обновлено. Теперь в корзине: {existing_item.quantity}"}
+    
+    if quantity <= 0:
+        raise HTTPException(
+            status_code=400, 
+            detail="Нельзя добавить товар с нулевым или отрицательным количеством"
+        )
 
     # Если товара нет добавляется 
     new_item = BasketItem(
