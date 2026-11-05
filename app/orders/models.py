@@ -1,10 +1,12 @@
 import enum
 from datetime import datetime
 from typing import List, Optional
-from sqlalchemy import ForeignKey, String, DateTime, Integer, Enum, func
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy import ForeignKey, String, DateTime, Integer, Enum, func, event, inspect, select, update
+from sqlalchemy import update, select
+from sqlalchemy.orm import Mapped, mapped_column, relationship, Session
 from app.database import Base
 from app.products.models import Product
+
 
 
 # Список статусов заказа
@@ -30,6 +32,9 @@ class Order(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now()) # Дата зодания заказа
     items: Mapped[List["OrderItem"]] = relationship(back_populates="order", cascade="all, delete-orphan") # Автоматически связывает заказ с его товарами и удаляет товары, если заказ удалён
 
+    def __str__(self) -> str:
+        return f"Id - {self.id} Имя - {self.user_name}"
+
 
 # Модель хранит точные цены и названия товаров на момент покупки, чтобы они не изменились при обновлении каталога
 class OrderItem(Base):
@@ -43,3 +48,6 @@ class OrderItem(Base):
     quantity: Mapped[int] = mapped_column(nullable=False) # Колличество продукта
     order: Mapped["Order"] = relationship(back_populates="items")
     product: Mapped["Product"] = relationship()
+
+    def __str__(self) -> str:
+        return f"{self.product_name} (x{self.quantity})"

@@ -34,8 +34,8 @@ class OrderFullResponse(BaseModel):
     id: int
     user_id: Optional[int]
     status: OrderStatus
-    user_name: str
-    user_phone: str
+    user_name: Optional[str]
+    user_phone: Optional[str]
     user_email: Optional[str]
     total_price: int
     delivery_address: str

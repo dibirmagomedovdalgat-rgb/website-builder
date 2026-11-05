@@ -4,6 +4,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.sql import func
 from app.database import Base
 from typing import List
+from pydantic import BaseModel, EmailStr
 from sqlalchemy.orm import relationship
 
 
@@ -25,3 +26,6 @@ class User(Base):
         back_populates="user", 
         cascade="all, delete-orphan"
     )
+
+    def __str__(self) -> str:
+        return self.name

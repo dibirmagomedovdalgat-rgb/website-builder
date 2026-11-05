@@ -9,7 +9,7 @@ from app.basket.routers import router as basket_router
 from app.orders.routers import router as order_router
 from app.admin import ProductAdmin, ProductImageAdmin 
 from app.admin_auth import authentication_backend
-from app.admin import ProductAdmin, ProductImageAdmin, BasketItemAdmin,OrderAdmin, OrderItemAdmin
+from app.admin import ProductAdmin, ProductImageAdmin, BasketItemAdmin,OrderAdmin, OrderItemAdmin,UserAdmin
 from config import settings  
 from app.basket.models import BasketItem
 from app.users.models import User
@@ -43,6 +43,7 @@ admin.add_view(ProductImageAdmin)
 admin.add_view(BasketItemAdmin)
 admin.add_view(OrderAdmin)
 admin.add_view(OrderItemAdmin)
+admin.add_view(UserAdmin)
 
 @app.get("/")
 def read_root():

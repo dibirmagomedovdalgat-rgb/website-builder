@@ -17,6 +17,9 @@ class Product(Base):
         cascade="all, delete-orphan"
     )
 
+    def __str__(self) -> str:
+        return self.title
+
 
 class ProductImage(Base):
     __tablename__ = "product_images" # Имя таблицы доп. фотографий

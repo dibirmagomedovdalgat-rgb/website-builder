@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, delete
+from sqlalchemy import select, delete, update
 from sqlalchemy.orm import selectinload
 from app.database import get_db
 from app.users.auth import get_current_user
@@ -8,6 +8,7 @@ from app.users.models import User
 from app.orders.models import Order, OrderItem, OrderStatus
 from app.orders.schemas import OrderCreate, OrderFullResponse, OrderShortResponse
 from app.basket.models import BasketItem 
+from app.products.models import Product
 
 # Это типо путь: /orders автоматически ставится везде.Если к примеру @router.post("/4") то будет /orders/4
 router = APIRouter(prefix="/orders", tags=["Заказы"])
@@ -19,9 +20,15 @@ async def create_order(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user) # Проверка JWT токена
 ):
+    # 1. Фиксируем данные пользователя в обычные переменные
+    user_id = current_user.id
+    user_name = current_user.name
+    user_phone = current_user.phone
+    user_email = current_user.email
+
     basket_query = (
         select(BasketItem) # Записи из модели BasketItem
-        .where(BasketItem.user_id == current_user.id) # Только те, которые принадлежат текущему пользователю
+        .where(BasketItem.user_id == user_id) # Используем сохраненную переменную
         .options(selectinload(BasketItem.product))
     )
     basket_result = await db.execute(basket_query) # Отправка запроса в бд
@@ -47,13 +54,13 @@ async def create_order(
     for item in basket_items: # Цикл в корзине
         total_price += item.product.price * item.quantity # Умножение цены товара на его количество и прибавление к счетчику 
 
-    # Создание заказа, данные пользователя заполняются по его профилю
+    # Создание заказа, данные берутся из изолированных переменных
     new_order = Order(
-        user_id=current_user.id,        # Id юзера 
+        user_id=user_id,                # Используем переменную (вместо current_user.id)
         status=OrderStatus.NEW,         # Статус
-        user_name=current_user.name,    # Имя
-        user_phone=current_user.phone,  # Номер телефона
-        user_email=current_user.email,  # Email
+        user_name=user_name,            # Используем переменную (вместо current_user.name)
+        user_phone=user_phone,          # Используем переменную (вместо current_user.phone)
+        user_email=user_email,          # Используем переменную (вместо current_user.email)
         total_price=total_price,        # Итоговая сумма
         delivery_address=order_data.delivery_address, # Адрес доставки (По дефолту самовывоз)
         comment=order_data.comment # Комментарий к заказу
@@ -73,59 +80,71 @@ async def create_order(
         )
         db.add(order_item)
         
-        # Убавляем колличество товара так как его заказали
+        # Убавляем количество товара так как его заказали
         item.product.quantity -= item.quantity
 
-    delete_basket_query = delete(BasketItem).where(BasketItem.user_id == current_user.id) # Очистка корзины пользователя в бд
+    # Очистка корзины пользователя в бд (используем user_id)
+    delete_basket_query = delete(BasketItem).where(BasketItem.user_id == user_id) 
     await db.execute(delete_basket_query)
+    
+    # Запоминаем сгенерированный базой ID в обычное число, пока объект не сбросился
+    created_order_id = new_order.id
     await db.commit() # Сохранение
     
     # Загрузка созданных items для корректного ответа схемы OrderFullResponse
     order_full_query = (
         select(Order)
-        .where(Order.id == new_order.id) # Только что созданный заказ по Id
+        .where(Order.id == created_order_id) # Используем сохраненное число
         .options(selectinload(Order.items))
     )
-    order_full_result = await db.execute(order_full_query) # Запрос бд
-    order_to_return = order_full_result.scalar_one() # Результат
+    order_full_query_result = await db.execute(order_full_query) # Запрос бд
+    order_to_return = order_full_query_result.scalar_one() # Результат
 
     return order_to_return
 
-
-# Получение истории заказов с краткой инфой
-@router.get("", response_model=list[OrderShortResponse])
-async def get_my_orders(
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user) # Какой именно пользователь делает запрос
-):
-    # Добавлен .order_by() для сортировки, если у вас в модели есть поле серийного времени (например, created_at)
-    query = select(Order).where(Order.user_id == current_user.id)
-    if hasattr(Order, 'created_at'):
-        query = query.order_by(Order.created_at.desc())
-        
-    result = await db.execute(query) # Запрос бд
-    return result.scalars().all()
-
-
-# Получение деталей одного заказа с полной инфой
-@router.get("/{order_id}", response_model=OrderFullResponse)
-async def get_order_details(
-    order_id: int,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user) # Какой именно пользователь делает запрос
-):
-    query = (
-        select(Order)
-        .where(Order.id == order_id, Order.user_id == current_user.id) # Поиск заказа по его Id и проверка, что он принадлежит именно ему
-        .options(selectinload(Order.items))
-    )
-    result = await db.execute(query) # Запрос в бд
-    order = result.scalar_one_or_none() # Вернет объект order, а если что-то пошло не так — то None
-
-    # Если order это None 
+async def process_order_cancellation(order_id: int, session: AsyncSession):
+    # Загружаем заказ из базы
+    result = await session.execute(select(Order).where(Order.id == order_id))
+    order = result.scalar_one_or_none()
+    
     if not order:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, # Ошибка
-            detail="Заказ не найден" # Текст ошибки
-        )
+        raise HTTPException(status_code=404, detail="Заказ не найден")
+        
+    # Если он уже был отменен, выходим, чтобы не начислить товары дважды
+    if order.status == OrderStatus.CANCELLED:
+        return order
+        
+    # Подгружаем все товары из этого заказа
+    items_result = await session.execute(select(OrderItem).where(OrderItem.order_id == order_id))
+    items = items_result.scalars().all()
+    
+    # Возвращаем каждый товар на склад прямым SQL запросом
+    for item in items:
+        if item.product_id:
+            await session.execute(
+                update(Product)
+                .where(Product.id == item.product_id)
+                .values(quantity=Product.quantity + item.quantity)
+            )
+            
+    # Меняем статус заказа на отмененный
+    order.status = OrderStatus.CANCELLED
     return order
+
+
+# 2. Сам эндпоинт, который вызывает эту функцию
+@router.post("/{order_id}/cancel")
+async def cancel_order(
+    order_id: int, 
+    session: AsyncSession = Depends(get_db)
+):
+    # Вызываем логику отмены
+    updated_order = await process_order_cancellation(order_id, session)
+    
+    # Сохраняем изменения в базе данных
+    await session.commit()
+    
+    return {
+        "status": "success", 
+        "message": f"Заказ №{updated_order.id} отменен, товары возвращены на склад."
+    }

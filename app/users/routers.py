@@ -1,12 +1,12 @@
 import bcrypt
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Response 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, or_
 from sqlalchemy.exc import IntegrityError
-
 from app.database import get_db
 from app.users.models import User
-from app.users.schemas import UserCreate, UserResponse
+from app.users.schemas import UserCreate, UserResponse, UserLogin
+from app.users.auth import create_access_token
 
 router = APIRouter(prefix="/users", tags=["Пользователи"])
 
@@ -62,3 +62,43 @@ async def register_user(user_data: UserCreate, db: AsyncSession = Depends(get_db
     await db.refresh(new_user)
     
     return new_user
+
+@router.post("/login")
+async def login(
+    login_data: UserLogin,
+    response: Response,
+    db: AsyncSession = Depends(get_db)
+):
+    # 1. Ищем пользователя в базе данных по Email
+    query = select(User).where(User.email == login_data.email)
+    result = await db.execute(query)
+    user = result.scalars().first()
+
+    # ИСПРАВЛЕНО: Проверка пароля переписана под используемый вами bcrypt
+    if user:
+        password_bytes = login_data.password.encode('utf-8')
+        hashed_bytes = user.hashed_password.encode('utf-8')
+        is_password_correct = bcrypt.checkpw(password_bytes, hashed_bytes)
+    else:
+        is_password_correct = False
+
+    # 2. Если пользователя нет или пароль не совпал
+    if not user or not is_password_correct:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Неверный email или пароль"
+        )
+    
+    # 3. Генерируем токен на 30 дней с помощью вашей функции из auth.py
+    access_token = create_access_token(user_id=user.id)
+    
+    # 4. Записываем токен в куки ответа браузера
+    response.set_cookie(
+        key="users_access_token",  # Имя куки соответствует get_token_from_cookie
+        value=access_token,
+        httponly=True,             # Защита токена от XSS скриптов
+        max_age=30 * 24 * 3600,    # Кука живет 30 дней в браузере
+        samesite="lax"
+    )
+    
+    return {"message": "Вход успешно выполнен", "user_name": user.name}

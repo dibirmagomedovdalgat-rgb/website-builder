@@ -1,4 +1,3 @@
-# app/users/auth.py
 from datetime import datetime, timedelta, timezone
 import jwt
 from fastapi import Request, HTTPException, status, Depends

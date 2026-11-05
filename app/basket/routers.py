@@ -83,7 +83,7 @@ async def get_my_basket(
         
         basket_list.append({
             "basket_item_id": item.id,
-            "product_name": item.product.name,
+            "product_name": item.product.title,
             "price_per_item": item.product.price,
             "quantity": item.quantity,
             "item_total_price": item_total

@@ -9,22 +9,20 @@ class BasketItem(Base):
     __tablename__ = "basket_items" # Имя таблицы товаров в бд
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True) #Id
-    
     # Привязка строки корзины
-    user_id: Mapped[int] = mapped_column(
-        ForeignKey("users.id", ondelete="CASCADE"), 
-        nullable=False
-    )
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     
     # Привязка строки корзины к продукту
     product_id: Mapped[int] = mapped_column(
         ForeignKey("products.id", ondelete="CASCADE"), 
         nullable=False
     )
-    
     # Количество этого товара в корзине
     quantity: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
-
     # Настраиваем связей
     user: Mapped["User"] = relationship(back_populates="basket_items")
     product: Mapped["Product"] = relationship()
+
+    def __str__(self) -> str:
+         return f"Id товара - {self.product_id} количество - x{self.quantity}"
+
