@@ -57,3 +57,14 @@ class ProductCreate(ProductBase):
 #   quantity: int # Колличество товара
     preview_image: Optional[str] = None    # Путь к главной фотографии карточки
     images: List[ProductImageCreate] = []  # Список картинок
+
+# Схема для создания категории
+class CategoryCreate(BaseModel):
+    title: str # Название
+
+
+# Схема для категории которвя возвращает Id и название категории
+class CategoryResponse(BaseModel):
+    id: int # ID
+    title: str # Название
+    model_config = ConfigDict(from_attributes=True)

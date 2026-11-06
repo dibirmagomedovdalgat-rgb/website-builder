@@ -4,7 +4,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.database import Base
 
 class Product(Base):
-    __tablename__ = "products" # Имя таблицы товаров в базе
+    __tablename__ = "products" # Имя таблицы товаров в бд
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True) # Id товара 
     title: Mapped[str] = mapped_column(String(250), nullable=False) # Название товара
@@ -12,12 +12,14 @@ class Product(Base):
     price: Mapped[int] = mapped_column(Integer, nullable=False) # Цена товара
     quantity: Mapped[int] = mapped_column(Integer, nullable=False) # Колличество товара
     preview_image: Mapped[Optional[str]] = mapped_column(String(500), default=None) # Путь к главной фотке карточки товара
+    category_id: Mapped[int] = mapped_column(ForeignKey("categories.id", ondelete="CASCADE"), nullable=False) # Ключ на таблицу categories
+    category: Mapped["Category"] = relationship(back_populates="products") # Ссылка на объект категории, типо: product.category.title
     images: Mapped[List["ProductImage"]] = relationship(
         back_populates="product", 
         cascade="all, delete-orphan"
     )
 
-    def __str__(self) -> str:
+    def __str__(self):
         return self.title
 
 
@@ -32,3 +34,13 @@ class ProductImage(Base):
         index=True
     )
     product: Mapped["Product"] = relationship(back_populates="images") # Получить из фотографии данные объекта к которму она привязанна
+
+class Category(Base):
+    __tablename__ = "categories" # Имя таблицы категории в бд
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True) # Id категории
+    title: Mapped[str] = mapped_column(String(250), nullable=False) # Название категории
+    products: Mapped[List["Product"]] = relationship(back_populates="category", cascade="all, delete-orphan") # Ссылка на объект продукта, типо: category.products
+
+    def __str__(self):
+        return self.title

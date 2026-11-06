@@ -1,13 +1,13 @@
 from sqladmin import ModelView
-from app.products.models import Product, ProductImage
+from app.products.models import Product, ProductImage, Category 
 from app.basket.models import BasketItem
-from app.orders.models import Order, OrderItem # Добавили импорт моделей заказов
+from app.orders.models import Order, OrderItem
 from app.users.models import User
 
 
 # Как товар будет выглядеть в админке
 class ProductAdmin(ModelView, model=Product):
-    column_list = [Product.id, Product.title, Product.price, Product.preview_image] # Колонки в таблице списка
+    column_list = [Product.id, Product.title, Product.price, Product.category, Product.preview_image] # Колонки в таблице списка
     column_searchable_list = [Product.title, Product.description] # Поля по которым работает поиск
     column_sortable_list = [Product.id, Product.price] # Поля по которым можно сортировать
     icon = "fa-solid fa-tag" # Иконка
@@ -98,3 +98,11 @@ class UserAdmin(ModelView, model=User):
     icon = "fa-solid fa-users"  
     name = "Пользователь"
     name_plural = "Пользователи"
+
+# Как категории будут выглядеть в админке
+class CategoryAdmin(ModelView, model=Category):
+    column_list = [Category.id, Category.title]  # Поля в списке
+    column_searchable_list = [Category.title]    # Поиск по названию
+    icon = "fa-solid fa-folder"                  # Иконка папки
+    name = "Категория"
+    name_plural = "Категории"
