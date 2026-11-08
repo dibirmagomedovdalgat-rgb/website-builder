@@ -12,56 +12,59 @@ router = APIRouter(prefix="/users", tags=["Пользователи"])
 
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 async def register_user(user_data: UserCreate, db: AsyncSession = Depends(get_db)):
-    # Проверки в одном запросе
+    # Список условий проверок
     conditions = [
         User.name == user_data.name,
         User.email == user_data.email
     ]
-    if user_data.phone:
+    if user_data.phone: # Если юзер передал номер телефона он добавится в список проверок
         conditions.append(User.phone == user_data.phone)
 
-    query = select(User).where(or_(*conditions))
-    result = await db.execute(query)
-    existing_users = result.scalars().all()
+    query = select(User).where(or_(*conditions)) # Запрос где передаются все условия
+    result = await db.execute(query) # Запрос в бд
+    existing_users = result.scalars().all() # Список всех совпадений
 
     # Проверка что именно совпало
     for existing_user in existing_users:
+        # Если нашелся человек с таким же никнеймом 
         if existing_user.name == user_data.name:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Пользователь с таким никнеймом уже зарегистрирован"
             )
         if existing_user.email == user_data.email:
+            # Если есть пользователь с таким Email 
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Пользователь с таким email уже зарегистрирован"
             )
         if user_data.phone and existing_user.phone == user_data.phone:
+            # Если есть пользователь с таким номером телефона 
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Пользователь с таким номером телефона уже зарегистрирован"
             )
 
     # Хеширование пароля
-    password_bytes = user_data.password.encode('utf-8')
-    salt = bcrypt.gensalt()
-    hashed_password_str = bcrypt.hashpw(password_bytes, salt).decode('utf-8')
+    password_bytes = user_data.password.encode('utf-8') # Перевод обычной строки в байты
+    salt = bcrypt.gensalt() # Генерация шума(соли)
+    hashed_password_str = bcrypt.hashpw(password_bytes, salt).decode('utf-8') # Хешироание пароля вместе с солью и превращение результата обратно в текст
 
     # Создание объекта
     new_user = User(
-        name=user_data.name,
-        email=user_data.email,
-        phone=user_data.phone,
-        bio=user_data.bio,
-        hashed_password=hashed_password_str
+        name=user_data.name,  # Имя  
+        email=user_data.email, # Email
+        phone=user_data.phone, # Номер телефона
+        bio=user_data.bio, # Биография(Описание)
+        hashed_password=hashed_password_str # Хешированый пароль(str)
     )
     
     # Сохранение в бд
-    db.add(new_user)
-    await db.commit()
-    await db.refresh(new_user)
+    db.add(new_user) # Добавление объекта в сессию бд
+    await db.commit() # Запись
+    await db.refresh(new_user) # Обновление инфы что б узнать Id
     
-    return new_user
+    return new_user # Возврат только что созданного юзера
 
 @router.post("/login")
 async def login(
@@ -69,36 +72,35 @@ async def login(
     response: Response,
     db: AsyncSession = Depends(get_db)
 ):
-    # 1. Ищем пользователя в базе данных по Email
-    query = select(User).where(User.email == login_data.email)
-    result = await db.execute(query)
-    user = result.scalars().first()
+    
+    query = select(User).where(User.email == login_data.email) # Поиск юзера в бд по Email
+    result = await db.execute(query) # Запрос 
+    user = result.scalars().first() # Ответ
 
-    # ИСПРАВЛЕНО: Проверка пароля переписана под используемый вами bcrypt
-    if user:
-        password_bytes = login_data.password.encode('utf-8')
-        hashed_bytes = user.hashed_password.encode('utf-8')
-        is_password_correct = bcrypt.checkpw(password_bytes, hashed_bytes)
+    if user: # Если юзер с таким Email нашелся
+        password_bytes = login_data.password.encode('utf-8') # Перевод введеного пароля в байты
+        hashed_bytes = user.hashed_password.encode('utf-8') # Перевод хеша пароля с бд в байты для проверки
+        is_password_correct = bcrypt.checkpw(password_bytes, hashed_bytes) # bcrypt.checkpw Сравнивает присланый пароль с хешем
+    # Если юзер с таким Email не нашелся 
     else:
         is_password_correct = False
 
-    # 2. Если пользователя нет или пароль не совпал
+    # Если юзера нет или пароль не соавпал
     if not user or not is_password_correct:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Неверный email или пароль"
         )
     
-    # 3. Генерируем токен на 30 дней с помощью вашей функции из auth.py
+    # Генерация токене с помощью раннее созданной функции
     access_token = create_access_token(user_id=user.id)
     
-    # 4. Записываем токен в куки ответа браузера
+    # Запись токена в куки браузера
     response.set_cookie(
-        key="users_access_token",  # Имя куки соответствует get_token_from_cookie
-        value=access_token,
-        httponly=True,             # Защита токена от XSS скриптов
-        max_age=30 * 24 * 3600,    # Кука живет 30 дней в браузере
-        samesite="lax"
+        key="users_access_token",
+        value=access_token, # Сам токен
+        httponly=True, # Запрещает js читать куки
+        max_age=30 * 24 * 3600, # Время жизни токена
+        samesite="lax" # Защита от межсайтовых подделок
     )
-    
-    return {"message": "Вход успешно выполнен", "user_name": user.name}
+    return {"message": "Вход успешно выполнен", "user_name": user.name} # Ответ если все прошло успешно

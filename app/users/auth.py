@@ -8,56 +8,53 @@ from config import settings
 from app.users.models import User
 from app.database import get_db 
 
-
-# === 1. ЗДЕСЬ МЫ НАСТРАИВАЕМ СРОК НА 30 ДНЕЙ ===
-def create_access_token(user_id: int) -> str:
-    # Вычисляем время превращения токена в "тыкву" (текущее время + 30 дней)
-    expire = datetime.now(timezone.utc) + timedelta(days=30)
-    
+# Создание токена
+def create_access_token(user_id: int):
+    expire = datetime.now(timezone.utc) + timedelta(days=30) # Сколько времени будет работать токен
     payload = {
-        "sub": str(user_id),
-        "exp": expire  # Зашиваем это время внутрь токена под ключом "exp"
+        "sub": str(user_id), # Id пользователя под ключем "sub"
+        "exp": expire  # Времия окончания действия токена "exp"
     }
     
-    # Шифруем строку с помощью SECRET_KEY из вашего .env файла
+    # Шифрование по алгоритму HS256 SECRET_KEY берется из .env
     encoded_jwt = jwt.encode(payload, settings.SECRET_KEY, algorithm="HS256")
-    return encoded_jwt
+    return encoded_jwt # Возвращает токена
 
-
-# === 2. ЗДЕСЬ МЫ ПРОВЕРЯЕМ ЭТОТ СРОК ПРИ ЗАПРОСАХ ===
-def get_token_from_cookie(request: Request) -> str:
-    token = request.cookies.get("users_access_token")
-    if not token:
+# Проверка токена
+def get_token_from_cookie(request: Request):
+    token = request.cookies.get("users_access_token") # Поиск токена в куках
+    if not token: # Если токена нет
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Вы не авторизованы"
         )
-    return token
+    return token # Возврат токена если он есть
 
+ # Возвращает готовый объект пользователя User
 async def get_current_user(
     token: str = Depends(get_token_from_cookie),
     db: AsyncSession = Depends(get_db)
-) -> User:
+):
     try:
-        # PyJWT автоматически прочитает поле "exp" и сравнит его с часами на сервере
-        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
-        user_id_str: str = payload.get("sub")
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"]) # Проверка подлинности токена
+        user_id_str: str = payload.get("sub") # Id пользователя
         if user_id_str is None:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Невалидный токен")
-        user_id = int(user_id_str)
+        user_id = int(user_id_str) # Превращение str Id в int
         
     except jwt.ExpiredSignatureError:
-        # Если дата exp осталась в прошлом — сработает этот блок:
+        # Если срок токена истек:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Срок действия токена истек")
     except (jwt.InvalidTokenError, ValueError):
+         # Если с токеном что-то не так
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Невалидный токен")
 
-    # Ищем пользователя в базе данных
+    # Поиск юзера в бд по его Id
     query = select(User).where(User.id == user_id)
     result = await db.execute(query)
     user = result.scalars().first()
 
-    if not user:
+    if not user: # Если токен был но юзера в бд нет
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Пользователь не найден")
 
-    return user
+    return user # Возврат объекта пользователя 

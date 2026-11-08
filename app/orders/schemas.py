@@ -6,7 +6,7 @@ from app.orders.models import OrderStatus
 # Информация об одном товаре
 class OrderItemResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
-    id: int
+    id: int 
     product_id: Optional[int]
     product_name: str
     price: int = Field(..., description="Цена на момент покупки")

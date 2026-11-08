@@ -8,31 +8,30 @@ from app.database import AsyncSessionLocal
 from app.users.models import User
 from config import settings
 
-
+ # Класс для защиты админки
 class AdminAuth(AuthenticationBackend):
-    async def login(self, request: Request) -> bool:
-        form = await request.form() 
-        username = form.get("username")
-        password = form.get("password")
+    async def login(self, request: Request):
+        form = await request.form() # Данные из формы
+        username = form.get("username") # Имя
+        password = form.get("password") # Пароль
 
-        # Если поля пустые отклоняется вход
-        if not username or not password:
+        if not username or not password: # Если поля пустые отклоняется вход
             return False
-
+        # Отдельная сессия с бд для админа 
         async with AsyncSessionLocal() as session:
             query = select(User).where(User.name == username) 
-            result = await session.execute(query) 
-            user = result.scalars().first()
+            result = await session.execute(query) # Запрос 
+            user = result.scalars().first() # Ответ
 
-            if user: 
-                password_bytes = password.encode('utf-8')
-                hashed_password = user.hashed_password
+            if user: # Если юзер нашелся
+                password_bytes = password.encode('utf-8') # Перевод сыргого пароля в байты
+                hashed_password = user.hashed_password # Хеш из бд
+                # Если хеш с бд пришел как обычная строка то переводится в байты 
                 hashed_bytes = hashed_password.encode('utf-8') if isinstance(hashed_password, str) else hashed_password
-                
-                # Проверка введеного пароля с хешем из бд
-                is_password_correct = bcrypt.checkpw(password_bytes, hashed_bytes)
-                
+                is_password_correct = bcrypt.checkpw(password_bytes, hashed_bytes) # Проверка введеного пароля с хешем из бд
+                # Если пароль правильный и роль админ или стафф 
                 if is_password_correct and user.role in ["admin", "staff"]: 
+                    # Открытие сессии админа в браузере и запись Id и роли 
                     request.session.update({ 
                         "user_id": str(user.id),
                         "user_role": user.role
@@ -40,19 +39,18 @@ class AdminAuth(AuthenticationBackend):
                     return True  # Вход разрешен
                     
         return False  # Запрет входа 
-    
-    async def logout(self, request: Request) -> bool:
-        request.session.clear()  
+    # Выход из админки
+    async def logout(self, request: Request):
+        request.session.clear() # Стирание данных админа из сессии браузера
         return True 
-
-    async def authenticate(self, request: Request) -> RedirectResponse | bool:
-        user_id = request.session.get("user_id") 
-        user_role = request.session.get("user_role") 
-
+    # Проверка прав админа при каждом клике 
+    async def authenticate(self, request: Request):
+        user_id = request.session.get("user_id")  # Id сессии
+        user_role = request.session.get("user_role")  # Роль из сессии
+        # Если все в пордке ничего не происходит 
         if user_id and user_role in ["admin", "staff"]: 
-            return True 
-            
-        return False  
+            return True
+         
+        return False # Если что-то не так с id  и ролью блокирует доступ к админке
 
-
-authentication_backend = AdminAuth(secret_key=settings.SECRET_KEY)
+authentication_backend = AdminAuth(secret_key=settings.SECRET_KEY) # Секретный ключ для всех сессий(берется из .env)

@@ -20,11 +20,11 @@ async def create_order(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user) # Проверка JWT токена
 ):
-    # 1. Фиксируем данные пользователя в обычные переменные
-    user_id = current_user.id
-    user_name = current_user.name
-    user_phone = current_user.phone
-    user_email = current_user.email
+    # Данные пользователя
+    user_id = current_user.id # Id
+    user_name = current_user.name # Имя
+    user_phone = current_user.phone # Номер телефона
+    user_email = current_user.email # Email
 
     basket_query = (
         select(BasketItem) # Записи из модели BasketItem
@@ -54,14 +54,14 @@ async def create_order(
     for item in basket_items: # Цикл в корзине
         total_price += item.product.price * item.quantity # Умножение цены товара на его количество и прибавление к счетчику 
 
-    # Создание заказа, данные берутся из изолированных переменных
+    # Создание заказа, данные берутся из переменных
     new_order = Order(
-        user_id=user_id,                # Используем переменную (вместо current_user.id)
-        status=OrderStatus.NEW,         # Статус
-        user_name=user_name,            # Используем переменную (вместо current_user.name)
-        user_phone=user_phone,          # Используем переменную (вместо current_user.phone)
-        user_email=user_email,          # Используем переменную (вместо current_user.email)
-        total_price=total_price,        # Итоговая сумма
+        user_id=user_id, # Id пользователя
+        status=OrderStatus.NEW, # Статус заказа
+        user_name=user_name, # Имя
+        user_phone=user_phone, # Номер телефона
+        user_email=user_email, # Email
+        total_price=total_price, # Итоговая сумма
         delivery_address=order_data.delivery_address, # Адрес доставки (По дефолту самовывоз)
         comment=order_data.comment # Комментарий к заказу
     )
@@ -75,26 +75,25 @@ async def create_order(
             order_id=new_order.id, # Id заказа
             product_id=item.product_id, # Id продукта
             product_name=item.product.title, # Название
-            price=item.product.price, # Фиксируем цену (int) на момент покупки
-            quantity=item.quantity  # Количество
+            price=item.product.price, # Фиксация цены на момент покупки
+            quantity=item.quantity # Количество
         )
         db.add(order_item)
         
-        # Убавляем количество товара так как его заказали
+        # Убавление количества товара так как его заказали
         item.product.quantity -= item.quantity
 
-    # Очистка корзины пользователя в бд (используем user_id)
+    # Очистка корзины пользователя в бд по его Id
     delete_basket_query = delete(BasketItem).where(BasketItem.user_id == user_id) 
     await db.execute(delete_basket_query)
     
-    # Запоминаем сгенерированный базой ID в обычное число, пока объект не сбросился
-    created_order_id = new_order.id
+    created_order_id = new_order.id # Запись Id пока объект не сбросился
     await db.commit() # Сохранение
     
     # Загрузка созданных items для корректного ответа схемы OrderFullResponse
     order_full_query = (
         select(Order)
-        .where(Order.id == created_order_id) # Используем сохраненное число
+        .where(Order.id == created_order_id) # То самое число которое сохранилось перед сбросом
         .options(selectinload(Order.items))
     )
     order_full_query_result = await db.execute(order_full_query) # Запрос бд
@@ -103,22 +102,22 @@ async def create_order(
     return order_to_return
 
 async def process_order_cancellation(order_id: int, session: AsyncSession):
-    # Загружаем заказ из базы
-    result = await session.execute(select(Order).where(Order.id == order_id))
-    order = result.scalar_one_or_none()
+    # Загрузка заказа из бд
+    result = await session.execute(select(Order).where(Order.id == order_id)) # Запрос в бд
+    order = result.scalar_one_or_none() # Результат
     
-    if not order:
+    if not order: # Если по запросу ничего не нашлось
         raise HTTPException(status_code=404, detail="Заказ не найден")
         
-    # Если он уже был отменен, выходим, чтобы не начислить товары дважды
+    # Если он уже отменен
     if order.status == OrderStatus.CANCELLED:
         return order
         
-    # Подгружаем все товары из этого заказа
+    # Загрузка товаров из заказа
     items_result = await session.execute(select(OrderItem).where(OrderItem.order_id == order_id))
     items = items_result.scalars().all()
     
-    # Возвращаем каждый товар на склад прямым SQL запросом
+    # Возвращение товара на склад
     for item in items:
         if item.product_id:
             await session.execute(
@@ -127,23 +126,21 @@ async def process_order_cancellation(order_id: int, session: AsyncSession):
                 .values(quantity=Product.quantity + item.quantity)
             )
             
-    # Меняем статус заказа на отмененный
+    # Смены статуса на ОТМЕНЕН
     order.status = OrderStatus.CANCELLED
     return order
 
 
-# 2. Сам эндпоинт, который вызывает эту функцию
+# Отмена заказа
 @router.post("/{order_id}/cancel")
 async def cancel_order(
-    order_id: int, 
+    order_id: int, # Id заказа 
     session: AsyncSession = Depends(get_db)
 ):
-    # Вызываем логику отмены
+    # Вызов функции для отмены
     updated_order = await process_order_cancellation(order_id, session)
-    
-    # Сохраняем изменения в базе данных
+    # Сохранение изменений в бд
     await session.commit()
-    
     return {
         "status": "success", 
         "message": f"Заказ №{updated_order.id} отменен, товары возвращены на склад."

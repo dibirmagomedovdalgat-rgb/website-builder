@@ -42,7 +42,7 @@ def validate_and_process_image(file: UploadFile) -> Image.Image:
         # Открытие файла через pillow
         image = Image.open(file.file)
         
-            # Проверка если с ориентацией картинки что-то не так
+        # Проверка если с ориентацией картинки что-то не так
         if hasattr(image, '_getexif') and image._getexif() is not None: # Если данные о ориентации есть
             image = ImageOps.exif_transpose(image) # Нормальная ориентация 
             
@@ -90,7 +90,7 @@ async def get_one_product(product_id: int, db: AsyncSession = Depends(get_db)):
     query = (
         select(Product)
         .where(Product.id == product_id)
-        .options(joinedload(Product.images))  #Загрузка связанных картинок из БД
+        .options(joinedload(Product.images))  # Загрузка связанных картинок из БД
     )
     result = await db.execute(query)
     product = result.scalars().unique().first()

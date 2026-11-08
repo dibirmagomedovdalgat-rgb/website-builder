@@ -33,7 +33,7 @@ class Order(Base):
     items: Mapped[List["OrderItem"]] = relationship(back_populates="order", cascade="all, delete-orphan") # Автоматически связывает заказ с его товарами и удаляет товары, если заказ удалён
 
     def __str__(self) -> str:
-        return f"Id - {self.id} Имя - {self.user_name}"
+        return f"Id - {self.id} Имя - {self.user_name}" # Id заказа и имя
 
 
 # Модель хранит точные цены и названия товаров на момент покупки, чтобы они не изменились при обновлении каталога
@@ -45,9 +45,9 @@ class OrderItem(Base):
     # Срез данных товара на момент покупки (чтобы не сломалось при изменении каталога)
     product_name: Mapped[str] = mapped_column(String(255), nullable=False) # Название продукта
     price: Mapped[int] = mapped_column(Integer, nullable=False)  # Цена продукта
-    quantity: Mapped[int] = mapped_column(nullable=False) # Колличество продукта
+    quantity: Mapped[int] = mapped_column(nullable=False) # Количество продукта
     order: Mapped["Order"] = relationship(back_populates="items")
     product: Mapped["Product"] = relationship()
 
     def __str__(self) -> str:
-        return f"{self.product_name} (x{self.quantity})"
+        return f"{self.product_name} (x{self.quantity})" # Название продукта и его количесво

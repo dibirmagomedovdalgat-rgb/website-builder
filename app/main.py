@@ -19,25 +19,25 @@ from app.orders.models import Order, OrderItem
 # Cоздание таблиц при старте
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+    async with engine.begin() as conn: # Соеденение с бд
+        await conn.run_sync(Base.metadata.create_all) # Создание таблиц если их еще нет
     yield
 
-
-app = FastAPI(lifespan=lifespan)
+app = FastAPI(lifespan=lifespan) # Фастапи и привязка функции для автматического создания таблиц
+ # Все роуты
 app.include_router(user_router)
 app.include_router(product_router) 
 app.include_router(basket_router)
 app.include_router(order_router)
 
-
+ # Настройка админ панели
 admin = Admin(
     app=app, 
     engine=engine, 
     title="Панель управления",
     authentication_backend=authentication_backend
 )
-
+ # Регистрация таблиц в админке
 admin.add_view(ProductAdmin)
 admin.add_view(ProductImageAdmin)
 admin.add_view(BasketItemAdmin)
@@ -46,6 +46,7 @@ admin.add_view(OrderItemAdmin)
 admin.add_view(UserAdmin)
 admin.add_view(CategoryAdmin)
 
+ # Эндпоинт для главной страницы
 @app.get("/")
 def read_root():
     return {
