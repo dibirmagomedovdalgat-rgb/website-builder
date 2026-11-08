@@ -9,8 +9,8 @@ from sqlalchemy import select
 from sqlalchemy.orm import joinedload
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_db  
-from app.products.models import Product, ProductImage
-from app.products.schemas import ProductResponse, ProductShortResponse, ProductCreate
+from app.products.models import Product, ProductImage, Category
+from app.products.schemas import ProductResponse, ProductShortResponse, ProductCreate, CategoryCreate, CategoryResponse
 from PIL import Image, ImageOps
 
 
@@ -131,7 +131,8 @@ async def create_product(
         description=product_data.description,
         price=product_data.price,
         quantity=product_data.quantity,
-        preview_image=final_preview_db_path
+        preview_image=final_preview_db_path,
+        category_id=product_data.category_id,
     )
 
     # Перенос доп.фото из временной папки в постоянную
@@ -185,3 +186,29 @@ async def upload_gallery_file(file: UploadFile = File(...)):
     file_path = target_dir / unique_name # Адрес файла
     img.save(file_path, format="WEBP", quality=80) # Сохранение изображения с качесвтом 80%
     return {"image_path": f"img/temp/{unique_name}"}# Возвращение верменного пути
+
+
+@router.post("/categories/create", response_model=CategoryResponse, status_code=status.HTTP_201_CREATED, tags=["Категории"])
+async def create_category(category_data: CategoryCreate, db: AsyncSession = Depends(get_db)):    
+    # Формирование запроса на поиск категории для проверки
+    query = select(Category).where(Category.title == category_data.title)
+    result = await db.execute(query) # Запрос бд
+    existing_category = result.scalars().first() # Ответ бд
+    
+    # Если такая категория уже есть
+    if existing_category:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Категория с названием '{category_data.title}' уже существует."
+        )
+        
+    # Если такой категории нет
+    new_category = Category(
+        title=category_data.title  # Название категории
+    )
+    
+    db.add(new_category) # Добавление в сессию бд
+    await db.commit() # Сохранение в бд
+    await db.refresh(new_category) # Обновление информации (получаем ID)
+    
+    return new_category # Возвращение созданной категории

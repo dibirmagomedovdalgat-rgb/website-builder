@@ -34,6 +34,8 @@ class ProductImage(Base):
         index=True
     )
     product: Mapped["Product"] = relationship(back_populates="images") # Получить из фотографии данные объекта к которму она привязанна
+    def __repr__(self) -> str:
+        return self.image_path # Путь картинки
 
 class Category(Base):
     __tablename__ = "categories" # Имя таблицы категории в бд

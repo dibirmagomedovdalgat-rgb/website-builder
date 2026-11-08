@@ -8,10 +8,10 @@ class ProductImageBase(BaseModel):
 
 # Схема изображения которая возвращается
 class ProductImageResponse(ProductImageBase):
-#   image_path: str <-- тоже тут
+#   image_path: str
     id: int # Id изображения
     product_id: int # Id продукта
-    model_config = ConfigDict(from_attributes=True) # Режим совместимости с SQLAlchemy (для Pydantic v2)
+    model_config = ConfigDict(from_attributes=True) # Режим совместимости с SQLAlchemy
 
 
 # Для того что б не дублировать код
@@ -20,6 +20,7 @@ class ProductBase(BaseModel):
     description: Optional[str] = None # Описание товара
     price: int # Цена товара
     quantity: int # Колличество товара
+    category_id: int #Id категории
 
 
 # Схема товара котоая возвращается. Уже хранит title, description и price т.к. наследуетсчя от ProductBase
