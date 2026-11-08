@@ -10,7 +10,7 @@ class Product(Base):
     title: Mapped[str] = mapped_column(String(250), nullable=False) # Название товара
     description: Mapped[Optional[str]] = mapped_column(String(2000)) # Описание товара
     price: Mapped[int] = mapped_column(Integer, nullable=False) # Цена товара
-    quantity: Mapped[int] = mapped_column(Integer, nullable=False) # Колличество товара
+    quantity: Mapped[int] = mapped_column(Integer, nullable=False) # Количество товара
     preview_image: Mapped[Optional[str]] = mapped_column(String(500), default=None) # Путь к главной фотке карточки товара
     category_id: Mapped[int] = mapped_column(ForeignKey("categories.id", ondelete="CASCADE"), nullable=False) # Ключ на таблицу categories
     category: Mapped["Category"] = relationship(back_populates="products") # Ссылка на объект категории, типо: product.category.title
