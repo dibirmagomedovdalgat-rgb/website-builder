@@ -174,7 +174,12 @@ async def create_product(
     return new_product
 
 # Валидация, сжатие главного фото в WebP и сохранение во временную папку temp
-@router.post("/upload-preview", tags=["Загрузка медиа"])
+@router.post("/upload-preview", tags=["Загрузка медиа"],
+    dependencies=[
+        # Все функции которые выполнятся до запуска роута
+        Depends(get_current_user),
+        Depends(is_admin)
+    ],)
 async def upload_preview_file(file: UploadFile = File(...)):
     img = validate_and_process_image(file) # Проверка файла
     target_dir = BASE_DIR / "img" / "temp" # Сначала все фото сохраня.тся в временную папку
@@ -187,7 +192,12 @@ async def upload_preview_file(file: UploadFile = File(...)):
     return {"image_path": f"img/temp/{unique_name}"}
 
 # Валидация, сжатие доп. фото в WebP и сохранение во временную папку
-@router.post("/upload-gallery", tags=["Загрузка медиа"])
+@router.post("/upload-gallery", tags=["Загрузка медиа"],
+    dependencies=[
+        # Все функции которые выполнятся до запуска роута
+        Depends(get_current_user),
+        Depends(is_admin)
+    ],)
 async def upload_gallery_file(file: UploadFile = File(...)):
     img = validate_and_process_image(file) # Проверка файла
     target_dir = BASE_DIR / "img" / "temp" # Путь до временной папки
