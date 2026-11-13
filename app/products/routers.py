@@ -198,7 +198,12 @@ async def upload_gallery_file(file: UploadFile = File(...)):
     return {"image_path": f"img/temp/{unique_name}"}# Возвращение верменного пути
 
 
-@router.post("/categories/create", response_model=CategoryResponse, status_code=status.HTTP_201_CREATED, tags=["Категории"])
+@router.post("/categories/create", response_model=CategoryResponse, status_code=status.HTTP_201_CREATED, tags=["Категории"],
+    dependencies=[
+        # Все функции которые выполнятся до запуска роута
+        Depends(get_current_user),
+        Depends(is_admin)
+    ],)
 async def create_category(category_data: CategoryCreate, db: AsyncSession = Depends(get_db)):    
     # Формирование запроса на поиск категории для проверки
     query = select(Category).where(Category.title == category_data.title)
