@@ -9,6 +9,7 @@ from app.orders.models import Order, OrderItem, OrderStatus
 from app.orders.schemas import OrderCreate, OrderFullResponse, OrderShortResponse
 from app.basket.models import BasketItem 
 from app.products.models import Product
+from services import process_order_cancellation
 
 # Это типо путь: /orders автоматически ставится везде.Если к примеру @router.post("/4") то будет /orders/4
 router = APIRouter(prefix="/orders", tags=["Заказы"])
@@ -101,44 +102,17 @@ async def create_order(
 
     return order_to_return
 
-async def process_order_cancellation(order_id: int, session: AsyncSession):
-    # Загрузка заказа из бд
-    result = await session.execute(select(Order).where(Order.id == order_id)) # Запрос в бд
-    order = result.scalar_one_or_none() # Результат
-    
-    if not order: # Если по запросу ничего не нашлось
-        raise HTTPException(status_code=404, detail="Заказ не найден")
-        
-    # Если он уже отменен
-    if order.status == OrderStatus.CANCELLED:
-        return order
-        
-    # Загрузка товаров из заказа
-    items_result = await session.execute(select(OrderItem).where(OrderItem.order_id == order_id))
-    items = items_result.scalars().all()
-    
-    # Возвращение товара на склад
-    for item in items:
-        if item.product_id:
-            await session.execute(
-                update(Product)
-                .where(Product.id == item.product_id)
-                .values(quantity=Product.quantity + item.quantity)
-            )
-            
-    # Смены статуса на ОТМЕНЕН
-    order.status = OrderStatus.CANCELLED
-    return order
-
-
 # Отмена заказа
 @router.post("/{order_id}/cancel")
 async def cancel_order(
     order_id: int, # Id заказа 
+    current_user: User = Depends(
+        get_current_user
+    ),
     session: AsyncSession = Depends(get_db)
 ):
     # Вызов функции для отмены
-    updated_order = await process_order_cancellation(order_id, session)
+    updated_order = await process_order_cancellation(order_id, session, current_user)
     # Сохранение изменений в бд
     await session.commit()
     return {
