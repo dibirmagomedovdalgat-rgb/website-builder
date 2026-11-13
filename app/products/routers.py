@@ -11,6 +11,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_db  
 from app.products.models import Product, ProductImage, Category
 from app.products.schemas import ProductResponse, ProductShortResponse, ProductCreate, CategoryCreate, CategoryResponse
+from app.users.auth import get_current_user
+from app.users.services import is_admin
 from PIL import Image, ImageOps
 
 
@@ -102,12 +104,20 @@ async def get_one_product(product_id: int, db: AsyncSession = Depends(get_db)):
     return product
 
 # Сохранение товара превью и доп. фото в постоянную папку и запуск фоновой задачи для првоерки на мусор
-@router.post("/create", response_model=ProductResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/create", response_model=ProductResponse, status_code=status.HTTP_201_CREATED,
+    dependencies=[
+        # Все функции которые выполнятся до запуска роута
+        Depends(get_current_user),
+        Depends(is_admin)
+    ],
+)
 async def create_product(
     product_data: ProductCreate, 
     background_tasks: BackgroundTasks, # Инструмент фоновых задач
     db: AsyncSession = Depends(get_db)
 ):    
+    
     # Перенос главного фото из временной папки в постоянную
     final_preview_db_path = None # Хранит путь картинки для записи в бд
     if product_data.preview_image: # Если путь к картинке есть

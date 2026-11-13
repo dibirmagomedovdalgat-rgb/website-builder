@@ -54,7 +54,10 @@ async def get_current_user(
     result = await db.execute(query)
     user = result.scalars().first()
 
-    if not user: # Если токен был но юзера в бд нет
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Пользователь не найден")
+    if user is None: # Если юзер не найден
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Пользователь не найден",
+        )
 
     return user # Возврат объекта пользователя 
