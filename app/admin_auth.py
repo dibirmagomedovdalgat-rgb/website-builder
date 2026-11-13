@@ -3,7 +3,6 @@ from starlette.requests import Request
 from starlette.responses import RedirectResponse
 from sqlalchemy import select
 import bcrypt
-
 from app.database import AsyncSessionLocal
 from app.users.models import User
 from config import settings
@@ -30,7 +29,7 @@ class AdminAuth(AuthenticationBackend):
                 hashed_bytes = hashed_password.encode('utf-8') if isinstance(hashed_password, str) else hashed_password
                 is_password_correct = bcrypt.checkpw(password_bytes, hashed_bytes) # Проверка введеного пароля с хешем из бд
                 # Если пароль правильный и роль админ или стафф 
-                if is_password_correct and user.role in ["admin", "staff"]: 
+                if is_password_correct and user.role =="admin": 
                     # Открытие сессии админа в браузере и запись Id и роли 
                     request.session.update({ 
                         "user_id": str(user.id),
@@ -45,12 +44,20 @@ class AdminAuth(AuthenticationBackend):
         return True 
     # Проверка прав админа при каждом клике 
     async def authenticate(self, request: Request):
-        user_id = request.session.get("user_id")  # Id сессии
-        user_role = request.session.get("user_role")  # Роль из сессии
-        # Если все в пордке ничего не происходит 
-        if user_id and user_role in ["admin", "staff"]: 
-            return True
-         
-        return False # Если что-то не так с id  и ролью блокирует доступ к админке
+        user_id = request.session.get("user_id")  # Id из сессии
+
+        if not user_id:
+            return False
+
+        async with AsyncSessionLocal() as session:
+            query = select(User).where(User.id == int(user_id))
+            result = await session.execute(query)
+            user = result.scalar_one_or_none()
+
+        if not user or not user.is_active or user.role not in ["admin"]:
+            request.session.clear()  # Отчистка сессии 
+            return False
+
+        return True
 
 authentication_backend = AdminAuth(secret_key=settings.SECRET_KEY) # Секретный ключ для всех сессий(берется из .env)
