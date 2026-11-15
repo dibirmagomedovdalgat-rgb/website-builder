@@ -20,23 +20,48 @@ async def process_order_cancellation(order_id: int, session: AsyncSession, curre
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Вы не можете отменить чужой заказ",
         )
-        
-    # Если заказ  уже отменен
-    if order.status == OrderStatus.CANCELLED:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Заказ уже отменен"
-        )
-    
-    # Если заказ уже выполнен
+
+    # Если он уже выполнен
     if order.status == OrderStatus.COMPLETED:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Выполненный заказ нельзя отменить"
         )
+        
+    # Если он уже отменен
+    if order.status == OrderStatus.CANCELLED:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Заказ уже отменен"
+        )
+
+    # Смена статуса на отменен
+    cancel = (
+        update(Order)
+        .where(
+            Order.id == order_id,
+            Order.status != OrderStatus.CANCELLED,
+            Order.status != OrderStatus.COMPLETED,
+        )
+        .values(status=OrderStatus.CANCELLED)
+        .returning(Order.id)
+    )
+    cancel_result = await session.execute(cancel)
+    updated_order_id = cancel_result.scalar_one_or_none()
+
+    # Если второй запрос успел отменить заказ быстрее
+    if updated_order_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Заказ уже отменен"
+        )
 
     # Загрузка товаров из заказа
-    items_result = await session.execute(select(OrderItem).where(OrderItem.order_id == order_id))
+    items_result = await session.execute(
+        select(OrderItem)
+        .where(OrderItem.order_id == order_id)
+        .order_by(OrderItem.product_id)
+    )
     items = items_result.scalars().all()
     
     # Возвращение товара на склад
@@ -48,6 +73,4 @@ async def process_order_cancellation(order_id: int, session: AsyncSession, curre
                 .values(quantity=Product.quantity + item.quantity)
             )
             
-    # Смены статуса на ОТМЕНЕН
-    order.status = OrderStatus.CANCELLED
     return order
