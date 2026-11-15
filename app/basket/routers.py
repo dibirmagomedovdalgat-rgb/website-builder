@@ -18,53 +18,96 @@ async def add_item_to_basket(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
+    # Есди количество меньше нуля
+    if quantity <= 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, 
+            detail="Количество для добавления должно быть больше 0."
+        )
 
-    product_result = await db.execute(select(Product).where(Product.id == product_id)) # Запрос в бд что б найти товар по Id
-    product = product_result.scalars().first() # Результат
-    # Если товар с таким Id не найден
+    # Поиск товара в бд
+    product_result = await db.execute(select(Product).where(Product.id == product_id))
+    product = product_result.scalars().first()
     if not product: 
-        raise HTTPException(status_code=404, detail="Товар не найден") # Возвращается ошибка 404
-    # Првоерка если товар уже в корзине
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Товар не найден")
+
+    # Проверка, есть ли товар уже в корзине пользователя
     basket_query = select(BasketItem).where(
-        BasketItem.user_id == current_user.id, # Id пользователя  
-        BasketItem.product_id == product_id # Id товара
+        BasketItem.user_id == current_user.id,  
+        BasketItem.product_id == product_id
     )
-    basket_result = await db.execute(basket_query) # Запрос в бд
-    existing_item = basket_result.scalars().first() # Первая найденная запись
+    basket_result = await db.execute(basket_query)
+    existing_item = basket_result.scalars().first()
     
-    # Если товар уже лежит в корзине то он просто плюсуется 
+    # Если товар уже был в корзине то он просто суммируется 
     if existing_item:
         new_quantity = existing_item.quantity + quantity
         
-        # Если количество 0 или меньше 0 удаляется товар из корзины
-        if new_quantity <= 0:
-            await db.delete(existing_item) # Удаление записи из сессии
-            await db.commit() # Сохранение изменений
-            return {"message": "Товар полностью удален из корзины"}
-        
-        # Иначе просто обновляется количество
+        if new_quantity > product.quantity:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Недостаточно товара на складе. Доступно: {product.quantity} шт. (в корзине уже: {existing_item.quantity} шт.)"
+            )
+
         existing_item.quantity = new_quantity   
-        await db.commit() # Сохранение изменений
+        await db.commit()
         return {"message": f"Количество товара обновлено. Теперь в корзине: {existing_item.quantity}"}
     
-    # Если товара в коризне не было
-    if quantity <= 0:
-        # Запрещается запись с нулевым и ниже нуля числом
+    # Если товара еще нет в корзине
+    if quantity > product.quantity:
         raise HTTPException(
-            status_code=400, 
-            detail="Нельзя добавить товар с нулевым или отрицательным количеством"
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Недостаточно товара на складе. Доступно: {product.quantity} шт."
         )
 
-    # Если товара нет в корзине и его число положительное то товар добавится 
     new_item = BasketItem(
-        user_id=current_user.id, # Id пользователя 
-        product_id=product_id, # Id продукта 
-        quantity=quantity # Количесвто
+        user_id=current_user.id, 
+        product_id=product_id, 
+        quantity=quantity
     )
-    db.add(new_item) # Добавление объекста в сессию бд
-    await db.commit() # Сохранение в бд
+    db.add(new_item)
+    await db.commit()
     return {"message": "Товар успешно добавлен в корзину"}
 
+@router.post("/decrease")
+async def decrease_item_in_basket(
+    product_id: int, 
+    quantity: int = 1,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    if quantity <= 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Количество для уменьшения должно быть больше 0"
+        )
+
+    # Поиск товара в корзине
+    basket_query = select(BasketItem).where(
+        BasketItem.user_id == current_user.id,
+        BasketItem.product_id == product_id
+    )
+    basket_result = await db.execute(basket_query)
+    existing_item = basket_result.scalars().first()
+
+    # Если товара нет
+    if not existing_item:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, 
+            detail="Товар не найден в корзине"
+        )
+
+    new_quantity = existing_item.quantity - quantity
+
+    # Если после уменьшение количество товара ноль или меньше то он удаляется с корзины
+    if new_quantity <= 0:
+        await db.delete(existing_item)
+        await db.commit()
+        return {"message": "Товар полностью удален из корзины"}
+
+    existing_item.quantity = new_quantity
+    await db.commit()
+    return {"message": f"Количество товара уменьшено. Теперь в корзине: {existing_item.quantity}"}
 
 # Достать всю корзину и посчитать всю сумму товаров в ней
 @router.get("/me")
