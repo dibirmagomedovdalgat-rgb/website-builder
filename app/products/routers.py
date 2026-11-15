@@ -227,7 +227,7 @@ async def create_product(
     
     return new_product
 
-
+# Создание категории
 @router.post("/categories/create", response_model=CategoryResponse, status_code=status.HTTP_201_CREATED, tags=["Категории"],
     dependencies=[
         # Все функции которые выполнятся до запуска роута
@@ -257,3 +257,27 @@ async def create_category(category_data: CategoryCreate, db: AsyncSession = Depe
     await db.refresh(new_category) # Обновление информации (получаем ID)
     
     return new_category # Возвращение созданной категории
+
+# Удаление категории
+@router.delete(
+    "/categories/{category_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    tags=["Категории"],
+    dependencies=[
+        Depends(get_current_user),
+        Depends(is_admin)
+    ],
+)
+async def delete_category(category_id: int, db: AsyncSession = Depends(get_db)):
+    query = select(Category).where(Category.id == category_id)
+    result = await db.execute(query)
+    category = result.scalars().first()
+
+    if not category:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Категория не найдена"
+        )
+
+    await db.delete(category)
+    await db.commit()
