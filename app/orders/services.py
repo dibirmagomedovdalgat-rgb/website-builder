@@ -13,15 +13,26 @@ async def process_order_cancellation(order_id: int, session: AsyncSession, curre
     
     if not order: # Если по запросу ничего не нашлось
         raise HTTPException(status_code=404, detail="Заказ не найден")
-        
-    # Если он уже отменен
-    if order.status == OrderStatus.CANCELLED:
-        return order
-
+    
+    # Проверка что заказ отменяет его владелец или админ
     if order.user_id != current_user.id and current_user.role != "admin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Вы не можете отменить чужой заказ",
+        )
+        
+    # Если заказ  уже отменен
+    if order.status == OrderStatus.CANCELLED:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Заказ уже отменен"
+        )
+    
+    # Если заказ уже выполнен
+    if order.status == OrderStatus.COMPLETED:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Выполненный заказ нельзя отменить"
         )
 
     # Загрузка товаров из заказа

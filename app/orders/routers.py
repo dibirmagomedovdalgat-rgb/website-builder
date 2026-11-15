@@ -29,8 +29,9 @@ async def create_order(
 
     basket_query = (
         select(BasketItem) # Записи из модели BasketItem
-        .where(BasketItem.user_id == user_id) # Используем сохраненную переменную
+        .where(BasketItem.user_id == user_id)
         .options(selectinload(BasketItem.product))
+        .order_by(BasketItem.product_id)
     )
     basket_result = await db.execute(basket_query) # Отправка запроса в бд
     basket_items = basket_result.scalars().all() # Результат
@@ -42,18 +43,20 @@ async def create_order(
             detail="Невозможно оформить заказ: ваша корзина пуста" # Сообщение 
         )
 
-    # Проверка достаточно ли товара
-    for item in basket_items:
+    # Проверка наличия и подсчет общей стоимости заказа
+    total_price = 0
+    for item in basket_items: # Цикл в корзине
+        if not item.product:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Один из товаров в корзине больше не существует"
+            )
         if item.product.quantity < item.quantity:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Недостаточно товара '{item.product.title}' на складе. Доступно: {item.product.quantity} шт."
             )
-
-    # Общая стоимость заказа
-    total_price = 0
-    for item in basket_items: # Цикл в корзине
-        total_price += item.product.price * item.quantity # Умножение цены товара на его количество и прибавление к счетчику 
+        total_price += item.product.price * item.quantity  # Умножение цены товара на его количество и прибавление к счетчику 
 
     # Создание заказа, данные берутся из переменных
     new_order = Order(
@@ -72,33 +75,51 @@ async def create_order(
 
     # Запуск цикла по всем элементам, которые вытащили из корзины пользователя
     for item in basket_items:
+        # Атомарное списание со склада
+        stock_update = (
+            update(Product)
+            .where(
+                Product.id == item.product_id,
+                Product.quantity >= item.quantity,
+            )
+            .values(quantity=Product.quantity - item.quantity)
+            .returning(Product.id)
+        )
+        stock_result = await db.execute(stock_update)
+        updated_product_id = stock_result.scalar_one_or_none()
+
+        # Если другой заказ
+        if updated_product_id is None:
+            await db.rollback()  # Откат
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Недостаточно товара '{item.product.title}' на складе (товар купили быстрее вас)."
+            )
+
         order_item = OrderItem(
-            order_id=new_order.id, # Id заказа
-            product_id=item.product_id, # Id продукта
-            product_name=item.product.title, # Название
-            price=item.product.price, # Фиксация цены на момент покупки
-            quantity=item.quantity # Количество
+            order_id=new_order.id,  # Id заказа
+            product_id=item.product_id,  # Id продукта
+            product_name=item.product.title,  # Название
+            price=item.product.price,  # Фиксация цены на момент покупки
+            quantity=item.quantity  # Количество
         )
         db.add(order_item)
-        
-        # Убавление количества товара так как его заказали
-        item.product.quantity -= item.quantity
 
     # Очистка корзины пользователя в бд по его Id
     delete_basket_query = delete(BasketItem).where(BasketItem.user_id == user_id) 
     await db.execute(delete_basket_query)
     
-    created_order_id = new_order.id # Запись Id пока объект не сбросился
-    await db.commit() # Сохранение
+    created_order_id = new_order.id  # Запись Id пока объект не сбросился
+    await db.commit()  # Сохранение всей транзакции целиком
     
     # Загрузка созданных items для корректного ответа схемы OrderFullResponse
     order_full_query = (
         select(Order)
-        .where(Order.id == created_order_id) # То самое число которое сохранилось перед сбросом
+        .where(Order.id == created_order_id)  # То самое число которое сохранилось перед сбросом
         .options(selectinload(Order.items))
     )
-    order_full_query_result = await db.execute(order_full_query) # Запрос бд
-    order_to_return = order_full_query_result.scalar_one() # Результат
+    order_full_query_result = await db.execute(order_full_query)  # Запрос бд
+    order_to_return = order_full_query_result.scalar_one()  # Результат
 
     return order_to_return
 
