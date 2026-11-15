@@ -13,7 +13,7 @@ from app.admin import ProductAdmin, ProductImageAdmin, BasketItemAdmin,OrderAdmi
 from config import settings  
 from app.basket.models import BasketItem
 from app.users.models import User
-from app.products.models import Product, ProductImage
+from app.products.models import Product, ProductImage, TempUpload
 from app.orders.models import Order, OrderItem
 
 # Cоздание таблиц при старте

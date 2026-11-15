@@ -2,6 +2,11 @@ from typing import List, Optional
 from sqlalchemy import String, Integer, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.database import Base
+import uuid
+from datetime import datetime
+from sqlalchemy import ForeignKey, String, DateTime, func
+from sqlalchemy.orm import Mapped, mapped_column
+from app.database import Base
 
 class Product(Base):
     __tablename__ = "products" # Имя таблицы товаров в бд
@@ -28,11 +33,7 @@ class ProductImage(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True) # Id конкретной картинки в базе
     image_path: Mapped[str] = mapped_column(String(500), nullable=False) # Путь к файлу на сервере    
-    # Id товара к которому привязана фотография
-    product_id: Mapped[int] = mapped_column(
-        ForeignKey("products.id", ondelete="CASCADE"), 
-        index=True
-    )
+    product_id: Mapped[int] = mapped_column(ForeignKey("products.id", ondelete="CASCADE"), index=True) # Id товара к которому привязана фотография
     product: Mapped["Product"] = relationship(back_populates="images") # Получить из фотографии данные объекта к которму она привязанна
     def __repr__(self) -> str:
         return self.image_path # Путь картинки
@@ -46,3 +47,13 @@ class Category(Base):
 
     def __str__(self):
         return self.title
+
+
+class TempUpload(Base):
+    __tablename__ = "temp_uploads"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    filename: Mapped[str] = mapped_column(String(255), nullable=False)
+    purpose: Mapped[str] = mapped_column(String(20), nullable=False)  # "preview" или "gallery"
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

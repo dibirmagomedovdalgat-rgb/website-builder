@@ -1,6 +1,5 @@
 from typing import List, Optional
-from pydantic import BaseModel, ConfigDict
-
+from pydantic import BaseModel, ConfigDict, Field
 
 # Для того что б не дублировать в коде что у каждой картинки есть путь
 class ProductImageBase(BaseModel):
@@ -69,3 +68,18 @@ class CategoryResponse(BaseModel):
     id: int # ID
     title: str # Название
     model_config = ConfigDict(from_attributes=True)
+
+class TempUploadResponse(BaseModel):
+    upload_id: str
+
+class ProductImageCreate(BaseModel):
+    upload_id: str = Field(..., min_length=36, max_length=36)
+
+class ProductCreate(BaseModel):
+    title: str
+    description: Optional[str] = None
+    price: int
+    quantity: int
+    category_id: Optional[int] = None
+    preview_upload_id: Optional[str] = Field(None, min_length=36, max_length=36)
+    images: List[ProductImageCreate] = []

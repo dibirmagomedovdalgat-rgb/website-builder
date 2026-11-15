@@ -9,7 +9,7 @@ from app.orders.models import Order, OrderItem, OrderStatus
 from app.orders.schemas import OrderCreate, OrderFullResponse, OrderShortResponse
 from app.basket.models import BasketItem 
 from app.products.models import Product
-from services import process_order_cancellation
+from app.orders.services import process_order_cancellation
 
 # Это типо путь: /orders автоматически ставится везде.Если к примеру @router.post("/4") то будет /orders/4
 router = APIRouter(prefix="/orders", tags=["Заказы"])
