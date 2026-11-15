@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import joinedload
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.exc import IntegrityError
 from app.database import get_db
 from app.users.auth import get_current_user
 from app.users.models import User
@@ -59,15 +60,34 @@ async def add_item_to_basket(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Недостаточно товара на складе. Доступно: {product.quantity} шт."
         )
-
+    
+    # Если товара нет в корзине и его число положительное то товар добавится 
     new_item = BasketItem(
         user_id=current_user.id, 
         product_id=product_id, 
         quantity=quantity
     )
-    db.add(new_item)
-    await db.commit()
-    return {"message": "Товар успешно добавлен в корзину"}
+    db.add(new_item) # Добавление объекста в сессию бд
+    try:
+        await db.commit() # Сохранение в бд
+        return {"message": "Товар успешно добавлен в корзину"}
+    # Если параллельный запрос успел создать эту запись раньше
+    except IntegrityError:
+        await db.rollback() # Откат ошибки в сессии
+        
+        retry_result = await db.execute(basket_query) # Повторный поиск записи в бд
+        existing_item = retry_result.scalars().first() # Первая найденная запись
+        if existing_item:
+            new_quantity = existing_item.quantity + quantity
+            # Если новое количество превышает остаток на скаде
+            if new_quantity > product.quantity:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Недостаточно товара на складе. Доступно: {product.quantity} шт. (в корзине уже: {existing_item.quantity} шт.)"
+                )
+            existing_item.quantity = new_quantity # Обновление количества
+            await db.commit() # Сохранение изменений
+            return {"message": f"Количество товара обновлено. Теперь в корзине: {existing_item.quantity}"}
 
 @router.post("/decrease")
 async def decrease_item_in_basket(
