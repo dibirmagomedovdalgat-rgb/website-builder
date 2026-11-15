@@ -2,7 +2,6 @@ import enum
 from datetime import datetime
 from typing import List, Optional
 from sqlalchemy import ForeignKey, String, DateTime, Integer, Enum, func, event, inspect, select, update
-from sqlalchemy import update, select
 from sqlalchemy.orm import Mapped, mapped_column, relationship, Session
 from app.database import Base
 from app.products.models import Product
@@ -21,10 +20,10 @@ class OrderStatus(enum.Enum):
 class Order(Base):
     __tablename__ = "orders"
     id: Mapped[int] = mapped_column(primary_key=True, index=True) # Id заказа
-    user_id: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=False) # Id пользователя  
+    user_id: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True) # Id пользователя  
     status: Mapped[OrderStatus] = mapped_column(Enum(OrderStatus), default=OrderStatus.NEW,nullable=False) # Статус заказа Новый/В работе/Выполнен/Отменен. По дефолту новый
     user_name: Mapped[str] = mapped_column(String(100), nullable=False) # Имя пользователя берется автоматичски из профиля
-    user_phone: Mapped[str] = mapped_column(String(20), nullable=False) # Номер телефона пользователя берется автоматичски из профиля
+    user_phone: Mapped[str] = mapped_column(String(30), nullable=False) # Номер телефона пользователя берется автоматичски из профиля
     user_email: Mapped[Optional[str]] = mapped_column(String(100), nullable=True) # Email пользвателя берется автоматичски из профиля
     total_price: Mapped[int] = mapped_column(Integer, nullable=False) # Итоговая сумма заказа
     delivery_address: Mapped[Optional[str]] = mapped_column(String(500), nullable=True, default="Самовывоз") # Адрес доставки, если не указали то будет Самовывоз

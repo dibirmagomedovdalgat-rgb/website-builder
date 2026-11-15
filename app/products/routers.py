@@ -22,7 +22,7 @@ router = APIRouter(prefix="/products", tags=["Продукты"])
 # Вывод каталога, минимальная информация
 @router.get("/", response_model=Union[List[ProductShortResponse], dict])
 async def get_all_products(db: AsyncSession = Depends(get_db)):
-    query = select(Product)
+    query = select(Product).options(joinedload(Product.category))
     result = await db.execute(query)
     products = result.scalars().all()
     if not products:
@@ -37,7 +37,10 @@ async def get_one_product(product_id: int, db: AsyncSession = Depends(get_db)):
     query = (
         select(Product)
         .where(Product.id == product_id)
-        .options(joinedload(Product.images))  # Загрузка связанных картинок из бд
+        .options(
+            joinedload(Product.images), # Загрузка связанных картинок из бд
+            joinedload(Product.category), # Загрузка категории из бд
+        )
     )
     result = await db.execute(query)
     product = result.scalars().unique().first()
@@ -219,7 +222,7 @@ async def create_product(
         
     db.add(new_product)  # Добавление товара в сессию бд
     await db.commit()  # Сохранение в бд
-    await db.refresh(new_product, attribute_names=["images"])  # Обновление информации
+    await db.refresh(new_product, attribute_names=["images", "category"])  # Обновление информации
     background_tasks.add_task(clean_expired_temp_files)  # Удаление мусора
     
     return new_product

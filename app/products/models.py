@@ -17,12 +17,16 @@ class Product(Base):
     price: Mapped[int] = mapped_column(Integer, nullable=False) # Цена товара
     quantity: Mapped[int] = mapped_column(Integer, nullable=False) # Количество товара
     preview_image: Mapped[Optional[str]] = mapped_column(String(500), default=None) # Путь к главной фотке карточки товара
-    category_id: Mapped[int] = mapped_column(ForeignKey("categories.id", ondelete="CASCADE"), nullable=False) # Ключ на таблицу categories
-    category: Mapped["Category"] = relationship(back_populates="products") # Ссылка на объект категории, типо: product.category.title
+    category_id: Mapped[Optional[int]] = mapped_column(ForeignKey("categories.id", ondelete="SET NULL"), nullable=True) # Ключ на таблицу categories
+    category: Mapped[Optional["Category"]] = relationship(back_populates="products") # Ссылка на объект категории, типо: product.category.title
     images: Mapped[List["ProductImage"]] = relationship(
         back_populates="product", 
         cascade="all, delete-orphan"
     )
+
+    @property
+    def category_title(self) -> str:
+        return self.category.title if self.category else "Отсутствует"
 
     def __str__(self):
         return self.title
@@ -43,7 +47,7 @@ class Category(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True) # Id категории
     title: Mapped[str] = mapped_column(String(250), nullable=False) # Название категории
-    products: Mapped[List["Product"]] = relationship(back_populates="category", cascade="all, delete-orphan") # Ссылка на объект продукта, типо: category.products
+    products: Mapped[List["Product"]] = relationship(back_populates="category") # Ссылка на объект продукта, типо: category.products
 
     def __str__(self):
         return self.title

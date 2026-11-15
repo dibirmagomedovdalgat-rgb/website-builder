@@ -19,7 +19,7 @@ class ProductBase(BaseModel):
     description: Optional[str] = None # Описание товара
     price: int # Цена товара
     quantity: int # Колличество товара
-    category_id: int #Id категории
+    category_id: Optional[int] = None #Id категории
 
 
 # Схема товара котоая возвращается. Уже хранит title, description и price т.к. наследуетсчя от ProductBase
@@ -29,6 +29,7 @@ class ProductResponse(ProductBase):
 #   price: int # Цена товара
 #   quantity: int # Колличество товара
     id: int # Id товара
+    category_title: str = "Отсутствует" # Название категории если ее нет будет "Отсутствует"
     preview_image: Optional[str] = None # Путь к превью
     images: List[ProductImageResponse] = [] # Список объектов, в объекте хранится id фото, путь к фото, id продукта
     model_config = ConfigDict(from_attributes=True)
@@ -40,23 +41,9 @@ class ProductShortResponse(ProductBase):
 #   price: int # Цена товара
 #   quantity: int # Колличество товара
     id: int
+    category_title: str = "Отсутствует" # Название категории если ее нет будет "Отсутствует"
     preview_image: Optional[str] = None
     model_config = ConfigDict(from_attributes=True)
-
-
-# Используется внутри ProductCreate. Клиент передает ТОЛЬКО image_path.
-class ProductImageCreate(ProductImageBase):
-    pass
-
-
-# Схема для создания продукта
-class ProductCreate(ProductBase):
-#   title: str # Название товара
-#   description: Optional[str] = None # Описание товара
-#   price: int # Цена товара
-#   quantity: int # Колличество товара
-    preview_image: Optional[str] = None    # Путь к главной фотографии карточки
-    images: List[ProductImageCreate] = []  # Список картинок
 
 # Схема для создания категории
 class CategoryCreate(BaseModel):
