@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import List, Optional
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 from app.orders.models import OrderStatus
 
 # Информация об одном товаре
@@ -15,8 +15,18 @@ class OrderItemResponse(BaseModel):
 
 # Все товары достанутся из корзины автоматически по user_id в бд.
 class OrderCreate(BaseModel):
+    phone: Optional[str] = Field(default=None, max_length=30)
     delivery_address: Optional[str] = Field(default="Самовывоз", max_length=500)
     comment: Optional[str] = Field(None, max_length=1000)
+
+    # Убирает лишние пробелы
+    @field_validator("phone", mode="before")
+    @classmethod
+    def clean_phone(cls, value: Optional[str]) -> Optional[str]:
+        if isinstance(value, str):
+            value = value.strip()
+            return value if value else None
+        return value
 
 
 # Краткая информация о заказе

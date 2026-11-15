@@ -24,7 +24,7 @@ async def create_order(
     # Данные пользователя
     user_id = current_user.id # Id
     user_name = current_user.name # Имя
-    user_phone = current_user.phone # Номер телефона
+    user_phone = order_data.phone or current_user.phone # Если номера телефона нет в JSON ен возьмется с бд
     user_email = current_user.email # Email
 
     basket_query = (
@@ -42,6 +42,22 @@ async def create_order(
             status_code=status.HTTP_400_BAD_REQUEST, # Код ошибки
             detail="Невозможно оформить заказ: ваша корзина пуста" # Сообщение 
         )
+
+     # Если нет номера телефона
+    if not user_phone:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Укажите номер телефона для оформления заказа."
+        )
+
+    # Если в заказе указали номер а в профиле его нет то он автоматически запишется в профиле
+    if not current_user.phone and order_data.phone:
+        # Проверка не занят ли номер телефона
+        existing_user = await db.execute(
+            select(User).where(User.phone == order_data.phone, User.id != user_id)
+        )
+        if not existing_user.scalar_one_or_none():
+            current_user.phone = order_data.phone
 
     # Проверка наличия и подсчет общей стоимости заказа
     total_price = 0
