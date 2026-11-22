@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Админ-панель — Настройки магазина</title>
+    <link rel="stylesheet" href="/admin/static/admin.css">
+</head>
+<body>
+
+<header class="topbar">
+    <div class="topbar-inner">
+        <h1>Панель управления</h1>
+        <div style="display: flex; align-items: center; gap: 14px;">
+            <a href="/admin/" style="color: inherit; text-decoration: none; opacity: 0.85;">Каталог</a>
+            <a href="/admin/shop-settings" style="color: inherit; font-weight: 600; text-decoration: none;">Настройки магазина</a>
+            <a href="/" target="_blank" style="color: inherit; text-decoration: none; opacity: 0.85;">Витрина ↗</a>
+        </div>
+    </div>
+</header>
+
+<div class="container">
+
+    {% if msg %}
+        <div class="alert" id="flashAlert">{{ msg }}</div>
+    {% endif %}
+
+    <div class="card">
+        <h2>Настройки витрины магазина</h2>
+
+        <form method="POST" action="/admin/shop-settings" enctype="multipart/form-data" style="display: flex; flex-direction: column; gap: 14px;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+            <div style="display: flex; flex-direction: column; gap: 6px;">
+                <label for="name"><strong>Название магазина *</strong></label>
+                <input type="text" id="name" name="name" value="{{ shop.name or '' }}" required>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 6px;">
+                <label for="slogan"><strong>Слоган</strong></label>
+                <input type="text" id="slogan" name="slogan" value="{{ shop.slogan or '' }}" placeholder="Качественные товары с доставкой">
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 6px;">
+                <label for="about_text"><strong>Описание компании («О магазине»)</strong></label>
+                <textarea id="about_text" name="about_text" rows="5">{{ shop.about_text or '' }}</textarea>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 6px;">
+                <label for="phone"><strong>Телефон</strong></label>
+                <input type="text" id="phone" name="phone" value="{{ shop.phone or '' }}" placeholder="+7 (999) 000-00-00">
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 6px;">
+                <label for="address"><strong>Адрес</strong></label>
+                <input type="text" id="address" name="address" value="{{ shop.address or '' }}">
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 6px;">
+                <label for="work_hours"><strong>График работы</strong></label>
+                <input type="text" id="work_hours" name="work_hours" value="{{ shop.work_hours or '' }}" placeholder="Пн–Вс: 10:00 – 21:00">
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 6px;">
+                <label for="social_link"><strong>Ссылка на мессенджер / соцсеть</strong></label>
+                <input type="url" id="social_link" name="social_link" value="{{ shop.social_link or '' }}" placeholder="https://t.me...">
+            </div>
+
+            <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 6px 0;">
+
+            <div style="display: flex; flex-direction: column; gap: 6px;">
+                <label for="theme_css"><strong>Активная CSS-тема витрины</strong></label>
+                <select id="theme_css" name="theme_css">
+                    {% for theme in themes %}
+                        <option value="{{ theme }}" {% if shop.theme_css == theme %}selected{% endif %}>
+                            {{ theme }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 6px;">
+                <label for="custom_css_file"><strong>Или загрузить свой .css файл</strong></label>
+                <input type="file" id="custom_css_file" name="custom_css_file" accept=".css,text/css">
+                <small class="muted-text">После загрузки файл сразу применится к витрине и появится в списке выше.</small>
+            </div>
+
+            <details style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 16px;">
+                <summary style="cursor: pointer; font-weight: 600; color: #1e293b;">
+                    💡 Как создать уникальный дизайн с помощью ИИ за 1 минуту
+                </summary>
+
+                <div style="margin-top: 12px; display: flex; flex-direction: column; gap: 10px; font-size: 0.92rem; line-height: 1.5; color: #334155;">
+                    <ol style="margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px;">
+                        <li>Скопируйте готовый запрос (промпт) по кнопке ниже.</li>
+                        <li>Откройте любую нейросеть (ChatGPT, Claude, Gemini, DeepSeek и др.) и вставьте текст.</li>
+                        <li>В конце запроса <strong>опишите свой стиль</strong> (например: <em>«тёмная киберпанк-тема с неоновыми акцентами»</em> или <em>«нежный пастельный стиль для кондитерской»</em>).</li>
+                        <li>Скопируйте сгенерированный ИИ код, сохраните его в файл с расширением <code>.css</code> (например, <code>my_theme.css</code>) через Блокнот.</li>
+                        <li>Загрузите этот файл в поле выше и нажмите <strong>«Сохранить настройки»</strong>.</li>
+                    </ol>
+
+                    <div style="position: relative;">
+                        <pre id="aiPromptText" style="background: #0f172a; color: #e2e8f0; padding: 12px; border-radius: 6px; font-size: 0.82rem; white-space: pre-wrap; margin: 0; overflow-x: auto;">
+Ты — Senior UI/UX-дизайнер и фронтенд-разработчик. К тебе обращается владелец интернет-магазина «{{ shop.name or 'Мой магазин' }}»{{ ' (' + shop.slogan + ')' if shop and shop.slogan else '' }}, чтобы создать единую визуальную тему (CSS-файл) для всей витрины на FastAPI + Jinja2.
+
+ТЕХНИЧЕСКИЕ ТРЕБОВАНИЯ (ОБЯЗАТЕЛЬНО):
+1. Первой строкой файла обязательно напиши:
+   @import url("/store/static/default.css");
+2. Если подключаешь шрифты (например, Google Fonts), добавь их @import сразу после импорта default.css.
+3. Не ломай адаптивную сетку (flex/grid), видимость элементов с атрибутом [hidden] и читаемость текста (соблюдай контрастность фона и шрифта на всех экранах).
+4. Выведи ТОЛЬКО чистый валидный CSS-код (без markdown-разметки ```css и без текстовых пояснений до или после кода), чтобы пользователь мог сразу сохранить ответ в файл theme.css.
+
+КАРТА ВСЕХ 8 СТРАНИЦ ВИТРИНЫ И ИХ CSS-КЛАССЫ:
+- Общие переменные (:root):
+  --bg (фон сайта), --surface (карточки, шапка, подвал), --text (основной текст), --muted (вторичный текст), --border (рамки), --primary (главный акцент кнопок/ссылок), --primary-hover (при наведении), --danger (ошибки и отмена), --success (успех), --radius (скругление), --shadow (тени).
+- Общий каркас (base.html — присутствует на всех страницах):
+  .site-header, .header-inner, .brand (название магазина), .nav-links, .nav-link, .nav-link.active, .cart-pill, .cart-badge
+  .site-footer, .footer-inner, .footer-brand, .footer-heading, .footer-links, .footer-text, .footer-bottom
+  .toast-container, .toast, .toast-success, .toast-error (всплывающие уведомления)
+- Общие кнопки и элементы форм:
+  .page-title, .card-box, .btn, .btn-primary, .btn-outline, .btn-secondary, .btn-danger, .btn-sm, .input, .select, .textarea, .form-group, .form-error
+- 1. Каталог (/store — catalog.html):
+  .toolbar (поиск и фильтры), .products-grid, .product-card, .product-thumb, .product-placeholder, .product-body, .product-cat, .product-title, .product-footer, .price-row, .price, .stock, .stock.out, .in-cart-hint
+- 2. Карточка товара (/product/{id} — product.html):
+  .detail-layout, .gallery-main, .gallery-thumbs, .gallery-thumb, .gallery-thumb.active, .buy-bar, .qty-input
+- 3. Корзина и оформление (/cart — cart.html):
+  .cart-layout, .cart-item, .cart-item-img, .cart-item-info, .qty-controls
+- 4. Мои заказы (/orders — orders.html):
+  .order-card, .order-header, .order-card-header, .order-number, .order-date, .status-badge, .order-status, .order-items-list, .order-items, .order-item-row, .order-meta, .order-card-footer, .order-total
+- 5. Личный кабинет (/profile — profile.html):
+  .page-profile, .card-box, .form-group
+- 6. О магазине (/about — about.html):
+  .page-about, .about-card, .about-slogan, .about-description, .about-contacts-grid, .contact-block, .contact-label, .contact-value
+- 7 и 8. Вход и Регистрация (/login и /register — login.html, register.html):
+  .auth-box, .form-group, .form-error
+
+МОИ ПОЖЕЛАНИЯ ПО ДИЗАЙНУ И СТИЛЮ:
+- Ниша магазина: [НАПИШИТЕ, ЧТО ПРОДАЁТЕ, НАПРИМЕР: ОДЕЖДА / ЭЛЕКТРОНИКА / КОФЕ / АВТОЗАПЧАСТИ]
+- Цветовая гамма и настроение: [НАПРИМЕР: ТЁМНАЯ ТЕМА С ЗОЛОТЫМИ АКЦЕНТАМИ / СВЕТЛЫЙ СКАНДИНАВСКИЙ МИНИМАЛИЗМ / ЯРКИЙ МОЛОДЁЖНЫЙ СТИЛЬ]
+- Форма элементов: [НАПРИМЕР: СТРОГИЕ ПРЯМЫЕ УГЛЫ И ТОНКИЕ РАМКИ / МЯГКИЕ СКРУГЛЕНИЯ И ОБЪЁМНЫЕ ТЕНИ]</pre>
+
+
+
+                        <button
+                            type="button"
+                            id="copyPromptBtn"
+                            class="btn"
+                            style="margin-top: 8px; background: #e2e8f0; color: #0f172a; font-size: 0.85rem; padding: 6px 12px;"
+                        >
+                            📋 Скопировать промпт для ИИ
+                        </button>
+                    </div>
+                </div>
+            </details>
+
+           <div>
+                <button type="submit" class="btn btn-primary">Сохранить настройки</button>
+            </div>
+        </form>
+
+        {% set custom_themes = themes | reject("equalto", "default.css") | list %}
+        {% if custom_themes %}
+            <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 20px 0 14px;">
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+                <strong>Загруженные CSS-темы</strong>
+                <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                    {% for theme in custom_themes %}
+                        <div style="display: inline-flex; align-items: center; gap: 8px; padding: 6px 10px; background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.9rem;">
+                            <span>{{ theme }}{% if shop.theme_css == theme %} <em>(активна)</em>{% endif %}</span>
+                            <form
+                                method="POST"
+                                action="/admin/shop-settings/themes/delete"
+                                style="margin: 0;"
+                                onsubmit="return confirm('Удалить файл темы «{{ theme }}»?');"
+                            >
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                <input type="hidden" name="theme_name" value="{{ theme }}">
+                                <button
+                                    type="submit"
+                                    title="Удалить тему"
+                                    style="border: none; background: #fee2e2; color: #b91c1c; border-radius: 6px; padding: 2px 7px; cursor: pointer; font-weight: 700;"
+                                >&times;</button>
+                            </form>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endif %}
+</div>
+
+<script>
+  const copyBtn = document.getElementById("copyPromptBtn");
+  const promptEl = document.getElementById("aiPromptText");
+  if (copyBtn && promptEl) {
+    copyBtn.addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText(promptEl.textContent);
+        const orig = copyBtn.textContent;
+        copyBtn.textContent = "✅ Промпт скопирован!";
+        setTimeout(() => { copyBtn.textContent = orig; }, 2500);
+      } catch (_) {
+        alert("Не удалось скопировать автоматически — выделите текст вручную.");
+      }
+    });
+  }
+</script>
+
+</body>
+</html>

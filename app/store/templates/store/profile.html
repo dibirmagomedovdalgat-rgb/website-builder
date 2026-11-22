@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+{% block title %}Личный кабинет — {{ current_user.name }}{% endblock %}
+{% block body_class %}page-profile{% endblock %}
+
+{% block content %}
+  <h1 class="page-title">Личный кабинет</h1>
+
+  <div class="cart-layout">
+    <section class="card-box">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h2 style="margin: 0; font-size: 1.25rem;">Мои данные</h2>
+        <button type="button" id="toggle-edit-profile" class="btn btn-outline btn-sm">Редактировать</button>
+      </div>
+
+      <!-- Режим просмотра -->
+      <div id="profile-view-mode">
+        <div class="form-group">
+          <span class="stock">Имя / Никнейм</span>
+          <strong id="view-prof-name">{{ current_user.name }}</strong>
+        </div>
+
+        <div class="form-group">
+          <span class="stock">Email</span>
+          <strong id="view-prof-email">{{ current_user.email }}</strong>
+        </div>
+
+        <div class="form-group">
+          <span class="stock">Телефон</span>
+          <strong id="view-prof-phone">{{ current_user.phone or "Не указан (заполнится при первом заказе)" }}</strong>
+        </div>
+
+        <div class="form-group" id="view-prof-bio-wrap" {% if not current_user.bio %}hidden{% endif %}>
+          <span class="stock">О себе</span>
+          <p id="view-prof-bio" style="margin: 0;">{{ current_user.bio or "" }}</p>
+        </div>
+
+        <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 20px;">
+          <a href="/cart" class="btn btn-primary btn-sm">Перейти в корзину ({{ cart_count }})</a>
+          <a href="/orders" class="btn btn-outline btn-sm">Все заказы</a>
+          <a href="/logout" class="btn btn-danger btn-sm">Выйти из аккаунта</a>
+        </div>
+      </div>
+
+      <!-- Режим редактирования -->
+      <form id="store-profile-form" hidden>
+        <div class="form-group">
+          <label for="prof-name">Имя / Никнейм *</label>
+          <input type="text" id="prof-name" name="name" class="input" value="{{ current_user.name }}" minlength="2" maxlength="100" required />
+        </div>
+
+        <div class="form-group">
+          <label for="prof-email">Email *</label>
+          <input type="email" id="prof-email" name="email" class="input" value="{{ current_user.email }}" required />
+        </div>
+
+        <div class="form-group">
+          <label for="prof-phone">Телефон</label>
+          <input type="text" id="prof-phone" name="phone" class="input" value="{{ current_user.phone or '' }}" maxlength="30" placeholder="+7 (999) 000-00-00" />
+        </div>
+
+        <div class="form-group">
+          <label for="prof-bio">О себе</label>
+          <textarea id="prof-bio" name="bio" rows="3" class="textarea" maxlength="1000">{{ current_user.bio or '' }}</textarea>
+        </div>
+
+        <div id="profile-error" class="form-error"></div>
+
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+          <button type="submit" class="btn btn-primary btn-sm">Сохранить</button>
+          <button type="button" id="cancel-edit-profile" class="btn btn-outline btn-sm">Отмена</button>
+        </div>
+      </form>
+    </section>
+
+    <section>
+      <h2 style="margin-top: 0; font-size: 1.25rem;">Последние заказы</h2>
+
+      {% if orders %}
+        {% for order in orders[:5] %}
+          {% set st = order.status.value if order.status.value is defined else order.status %}
+          <article class="order-card">
+            <div class="order-header">
+              <div>
+                <strong>Заказ #{{ order.id }}</strong>
+                {% if order.created_at %}
+                  <span class="stock" style="margin-left: 8px;">
+                    от {{ order.created_at.strftime('%d.%m.%Y %H:%M') }}
+                  </span>
+                {% endif %}
+              </div>
+              <span class="status-badge status-{{ st }}">{{ st }}</span>
+            </div>
+
+            <ul class="order-items-list">
+              {% for item in order.items %}
+                <li>
+                  <span>{{ item.product_name }} × {{ item.quantity }} шт.</span>
+                  <span>{{ item.price * item.quantity }} ₽</span>
+                </li>
+              {% endfor %}
+            </ul>
+
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <strong>Итого: {{ order.total_price }} ₽</strong>
+              {% if st not in ['cancelled', 'completed', 'delivered', 'Отменен', 'Выполнен'] %}
+                <button type="button" class="btn btn-danger btn-sm js-cancel-order" data-order-id="{{ order.id }}">
+                  Отменить заказ
+                </button>
+              {% endif %}
+            </div>
+          </article>
+        {% endfor %}
+      {% else %}
+        <div class="card-box">
+          <p style="margin-top: 0;">Вы ещё не оформляли заказы.</p>
+          <a href="/" class="btn btn-primary btn-sm">В каталог</a>
+        </div>
+      {% endif %}
+    </section>
+  </div>
+{% endblock %}

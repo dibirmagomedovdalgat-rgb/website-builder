@@ -1,9 +1,9 @@
 from datetime import datetime, timedelta, timezone
 import jwt
-from fastapi import Request, HTTPException, status, Depends
+from fastapi import Depends, HTTPException, Request, Response, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-
+import secrets
 from config import settings
 from app.users.models import User
 from app.database import get_db 
@@ -66,3 +66,35 @@ async def get_current_user(
         )
 
     return user # Возврат объекта пользователя 
+
+CSRF_COOKIE_NAME = "csrf_token"
+
+def get_or_create_csrf_token(request: Request, response: Response) -> str:
+    token = request.cookies.get(CSRF_COOKIE_NAME)
+    if not token:
+        token = secrets.token_urlsafe(32)
+        response.set_cookie(
+            key=CSRF_COOKIE_NAME,
+            value=token,
+            httponly=True,
+            samesite="lax",
+            path="/",
+        )
+    return token
+
+
+async def verify_csrf(request: Request):
+    if request.method in ("GET", "HEAD", "OPTIONS"):
+        return
+    cookie_token = request.cookies.get(CSRF_COOKIE_NAME)
+
+    if not cookie_token:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Отсутствует CSRF cookie")
+    submitted_token = request.headers.get("X-CSRF-Token")
+
+    if not submitted_token:
+        form_data = await request.form()
+        submitted_token = form_data.get("csrf_token")
+
+    if not submitted_token or not secrets.compare_digest(cookie_token, str(submitted_token)):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Неверный CSRF-токен")

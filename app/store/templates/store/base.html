@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}{{ shop.name if shop else 'Магазин' }}{% endblock %}</title>
+    <link rel="stylesheet" href="/store/static/{{ shop.theme_css if shop and shop.theme_css else 'default.css' }}" />
+
+</head>
+<body class="{% block body_class %}{% endblock %}">
+  <header class="site-header">
+    <div class="container header-inner">
+      <a href="/" class="brand">
+        {{ shop.name if shop and shop.name else "Storefront" }}
+      </a>
+
+      <nav class="nav-links">
+        <a href="/" class="nav-link {% if request.url.path == '/' %}active{% endif %}">
+          Каталог
+        </a>
+        <a href="/about" class="nav-link {% if request.url.path == '/about' %}active{% endif %}">
+          О магазине
+        </a>
+
+        {% if current_user %}
+          <a href="/orders" class="nav-link {% if request.url.path == '/orders' %}active{% endif %}">
+            Мои заказы
+          </a>
+          <a href="/profile" class="nav-link {% if request.url.path == '/profile' %}active{% endif %}">
+            {{ current_user.name }}
+          </a>
+          <a href="/cart" class="cart-pill">
+            Корзина
+            <span class="cart-badge" id="header-cart-count">{{ cart_count }}</span>
+          </a>
+          <a href="/logout" class="nav-link">Выйти</a>
+        {% else %}
+          <a href="/login" class="nav-link {% if request.url.path == '/login' %}active{% endif %}">
+            Войти
+          </a>
+          <a href="/register" class="btn btn-primary btn-sm">Регистрация</a>
+        {% endif %}
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <div class="footer-col">
+        <div class="footer-brand">{{ shop.name if shop and shop.name else "Storefront" }}</div>
+        {% if shop and shop.slogan %}
+          <p class="footer-text">{{ shop.slogan }}</p>
+        {% endif %}
+      </div>
+
+      <div class="footer-col">
+        <div class="footer-heading">Навигация</div>
+        <div class="footer-links">
+          <a href="/">Каталог</a>
+          <a href="/about">О магазине</a>
+          {% if current_user %}
+            <a href="/cart">Корзина</a>
+            <a href="/orders">Мои заказы</a>
+            <a href="/profile">Профиль</a>
+          {% else %}
+            <a href="/login">Вход</a>
+            <a href="/register">Регистрация</a>
+          {% endif %}
+        </div>
+      </div>
+
+      {% if shop and (shop.phone or shop.address or shop.work_hours) %}
+        <div class="footer-col">
+          <div class="footer-heading">Контакты</div>
+          {% if shop.phone %}
+            <div class="footer-text">Тел: {{ shop.phone }}</div>
+          {% endif %}
+          {% if shop.address %}
+            <div class="footer-text">Адрес: {{ shop.address }}</div>
+          {% endif %}
+          {% if shop.work_hours %}
+            <div class="footer-text">График: {{ shop.work_hours }}</div>
+          {% endif %}
+        </div>
+      {% endif %}
+    </div>
+
+    <div class="container footer-bottom">
+      <span>© 2026 {{ shop.name if shop and shop.name else "Storefront" }}. Все права защищены.</span>
+    </div>
+  </footer>
+
+    <script src="/store/static/storefront.js"></script>
+</body>
+</html>

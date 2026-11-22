@@ -21,3 +21,10 @@ def get_settings():
 
 # Для импорта
 settings = get_settings()
+
+class Settings(BaseSettings):
+    DATABASE_URL: str
+    SECRET_KEY: str
+    DOMAIN: str = "localhost"
+    DEBUG: bool = False
+    PORT: int = 80

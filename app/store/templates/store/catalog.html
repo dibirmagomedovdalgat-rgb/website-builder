@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}Каталог товаров{% endblock %}
+
+{% block content %}
+  <h1 class="page-title">Каталог товаров</h1>
+
+  <form method="get" action="/" class="toolbar">
+    <input
+      type="text"
+      name="q"
+      value="{{ search_query }}"
+      placeholder="Поиск по названию..."
+      class="input"
+    />
+
+    <select name="category_id" class="select">
+      <option value="">Все категории</option>
+      {% for cat in categories %}
+        <option value="{{ cat.id }}" {% if selected_category_id == cat.id %}selected{% endif %}>
+          {{ cat.title }}
+        </option>
+      {% endfor %}
+    </select>
+
+    <select name="sort" class="select">
+      <option value="newest" {% if sort == "newest" %}selected{% endif %}>Сначала новинки</option>
+      <option value="price_asc" {% if sort == "price_asc" %}selected{% endif %}>Сначала дешевле</option>
+      <option value="price_desc" {% if sort == "price_desc" %}selected{% endif %}>Сначала дороже</option>
+    </select>
+
+    <button type="submit" class="btn btn-primary">Применить</button>
+    {% if search_query or selected_category_id %}
+      <a href="/" class="btn btn-outline">Сбросить</a>
+    {% endif %}
+  </form>
+
+  {% if products %}
+    <div class="products-grid">
+      {% for product in products %}
+        {% set in_cart = cart_map.get(product.id, 0) %}
+        <article class="product-card">
+          <a href="/product/{{ product.id }}">
+            {% if product.preview_image %}
+              {% set img_src = product.preview_image if product.preview_image.startswith('/') else '/' + product.preview_image %}
+              <img src="{{ img_src }}" alt="{{ product.title }}" class="product-thumb" />
+            {% else %}
+              <div class="product-placeholder">Нет фото</div>
+            {% endif %}
+          </a>
+
+          <div class="product-body">
+            <div class="product-cat">{{ product.category_title }}</div>
+            <h2 class="product-title">
+              <a href="/product/{{ product.id }}">{{ product.title }}</a>
+            </h2>
+
+            <div class="product-footer">
+              <div class="price-row">
+                <span class="price">{{ product.price }} ₽</span>
+                {% if product.quantity > 0 %}
+                  <span class="stock">В наличии: {{ product.quantity }}</span>
+                {% else %}
+                  <span class="stock out">Нет в наличии</span>
+                {% endif %}
+              </div>
+
+              <div
+                class="in-cart-hint"
+                data-in-cart-id="{{ product.id }}"
+                data-qty="{{ in_cart }}"
+                {% if in_cart == 0 %}hidden{% endif %}
+              >
+                В корзине: {{ in_cart }} шт.
+              </div>
+
+              <button
+                type="button"
+                class="btn btn-primary"
+                data-action="add-to-cart"
+                data-product-id="{{ product.id }}"
+                {% if product.quantity <= 0 %}disabled{% endif %}
+              >
+                {% if product.quantity > 0 %}В корзину{% else %}Раскуплено{% endif %}
+              </button>
+            </div>
+          </div>
+        </article>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="card-box">Товары по вашему запросу не найдены.</div>
+  {% endif %}
+{% endblock %}

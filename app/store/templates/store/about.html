@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block title %}О магазине — {{ shop.name }}{% endblock %}
+
+{% block content %}
+  <section class="card-box">
+    <h1 class="page-title">О магазине «{{ shop.name }}»</h1>
+
+    {% if shop.slogan %}
+      <p style="font-size: 1.1rem; color: var(--muted); margin-top: -8px;">{{ shop.slogan }}</p>
+    {% endif %}
+
+    <div style="margin: 20px 0; white-space: pre-line;">
+      {% if shop.about_text %}
+        <p>{{ shop.about_text }}</p>
+      {% else %}
+        <p class="stock">Информация о компании скоро появится.</p>
+      {% endif %}
+    </div>
+
+    <div class="products-grid" style="margin-top: 24px;">
+      {% if shop.phone %}
+        <div class="card-box">
+          <div class="stock">Телефон</div>
+          <strong>{{ shop.phone }}</strong>
+        </div>
+      {% endif %}
+      {% if shop.address %}
+        <div class="card-box">
+          <div class="stock">Адрес</div>
+          <strong>{{ shop.address }}</strong>
+        </div>
+      {% endif %}
+      {% if shop.work_hours %}
+        <div class="card-box">
+          <div class="stock">График работы</div>
+          <strong>{{ shop.work_hours }}</strong>
+        </div>
+      {% endif %}
+      {% if shop.social_link %}
+        <div class="card-box">
+          <div class="stock">Мессенджер</div>
+          <a href="{{ shop.social_link }}" target="_blank" rel="noopener" class="btn btn-outline btn-sm" style="margin-top: 6px;">
+            Связаться с нами
+          </a>
+        </div>
+      {% endif %}
+    </div>
+  </section>
+{% endblock %}

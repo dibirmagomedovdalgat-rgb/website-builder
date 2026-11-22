@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block title %}Корзина{% endblock %}
+
+{% block content %}
+  <h1 class="page-title">Корзина</h1>
+
+  {% if items %}
+    <div class="cart-layout">
+      <div class="card-box">
+        {% for row in items %}
+          <div class="cart-item">
+            {% if row.product.preview_image %}
+              {% set img_src = row.product.preview_image if row.product.preview_image.startswith('/') else '/' + row.product.preview_image %}
+              <img src="{{ img_src }}" alt="{{ row.product.title }}" class="cart-item-img" />
+            {% else %}
+              <div class="cart-item-img" style="display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:#6b7280;">Фото</div>
+            {% endif %}
+
+            <div class="cart-item-info">
+              <a href="/product/{{ row.product.id }}" style="font-weight: 600;">
+                {{ row.product.title }}
+              </a>
+              <div class="stock">{{ row.product.price }} ₽ за шт.</div>
+            </div>
+
+            <div class="qty-controls">
+              <button
+                type="button"
+                class="btn btn-outline btn-sm"
+                data-action="decrease-cart"
+                data-product-id="{{ row.product.id }}"
+              >−</button>
+
+              <strong>{{ row.quantity }}</strong>
+
+              <button
+                type="button"
+                class="btn btn-outline btn-sm"
+                data-action="add-to-cart"
+                data-product-id="{{ row.product.id }}"
+                {% if row.quantity >= row.product.quantity %}disabled{% endif %}
+              >+</button>
+            </div>
+
+            <div style="min-width: 95px; text-align: right; font-weight: 700;">
+              {{ row.subtotal }} ₽
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+
+      <div class="card-box">
+        <h2 style="margin-top: 0; font-size: 1.2rem;">Оформление заказа</h2>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 18px; font-size: 1.1rem;">
+          <span>Итого:</span>
+          <strong>{{ total_price }} ₽</strong>
+        </div>
+
+        <form id="store-checkout-form">
+          <div class="form-group">
+            <label for="checkout-phone">Телефон для связи *</label>
+            <input
+              type="text"
+              id="checkout-phone"
+              name="phone"
+              class="input"
+              value="{{ current_user.phone or '' }}"
+              placeholder="+7 (999) 000-00-00"
+              required
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="checkout-address">Адрес доставки</label>
+            <input
+              type="text"
+              id="checkout-address"
+              name="delivery_address"
+              class="input"
+              value="Самовывоз"
+              placeholder="Город, улица, дом, квартира"
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="checkout-comment">Комментарий к заказу</label>
+            <textarea
+              id="checkout-comment"
+              name="comment"
+              rows="2"
+              class="textarea"
+              placeholder="Пожелания по доставке..."
+            ></textarea>
+          </div>
+
+          <div id="checkout-error" class="form-error"></div>
+
+          <button type="submit" class="btn btn-primary" style="width: 100%;">
+            Подтвердить заказ
+          </button>
+        </form>
+      </div>
+    </div>
+  {% else %}
+    <div class="card-box">
+      <p style="margin-top: 0;">Ваша корзина пока пуста.</p>
+      <a href="/" class="btn btn-primary">Перейти в каталог</a>
+    </div>
+  {% endif %}
+{% endblock %}

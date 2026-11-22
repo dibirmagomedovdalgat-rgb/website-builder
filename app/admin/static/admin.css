@@ -1,0 +1,869 @@
+:root {
+    --bg-main: #f4f8fc;          /* Нежный ледяной фон страницы */
+    --bg-card: #ffffff;          /* Чисто белые карточки */
+    --primary: #0ea5e9;          /* Яркий небесно-голубой (основной) */
+    --primary-hover: #0284c7;    /* Глубокий голубой при наведении */
+    --primary-light: #e0f2fe;    /* Мягкий голубой для акцентов и бейджей */
+    --text-main: #0f172a;        /* Тёмный графит для читаемости текста */
+    --text-muted: #64748b;       /* Второстепенный текст */
+    --border-color: #dbeafe;     /* Светло-голубая рамка */
+    --danger: #ef4444;           /* Мягкий красный для удаления */
+    --danger-hover: #dc2626;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background-color: var(--bg-main);
+    color: var(--text-main);
+    line-height: 1.5;
+}
+
+/* Верхняя голубая шапка админки */
+.topbar {
+    background: linear-gradient(135deg, #0284c7, #38bdf8);
+    color: #ffffff;
+    padding: 16px 24px;
+    box-shadow: 0 2px 10px rgba(14, 165, 233, 0.2);
+}
+
+.topbar-inner {
+    max-width: 1050px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.topbar h1 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 600;
+}
+
+/* Основной контейнер */
+.container {
+    max-width: 1050px;
+    margin: 28px auto;
+    padding: 0 20px;
+}
+
+/* Белые карточки */
+.card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 24px;
+    box-shadow: 0 4px 16px rgba(14, 165, 233, 0.06);
+}
+
+.card h2 {
+    margin-top: 0;
+    margin-bottom: 18px;
+    font-size: 18px;
+    color: #0369a1;
+    border-bottom: 2px solid var(--primary-light);
+    padding-bottom: 10px;
+}
+
+/* Уведомление об успехе */
+.alert {
+    background-color: var(--primary-light);
+    color: #0369a1;
+    border-left: 4px solid var(--primary);
+    padding: 12px 16px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    font-weight: 500;
+}
+
+/* Сетка форм */
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+}
+
+.form-grid > .form-group {
+    min-width: 0;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.form-group.full {
+    grid-column: span 2;
+}
+
+/* Миниатюры предпросмотра загруженных фото */
+.preview-box {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 4px;
+    padding-top: 6px;
+    max-width: 100%;
+}
+
+.preview-box img {
+    width: 68px;
+    height: 68px;
+    max-width: 68px;
+    max-height: 68px;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 2px solid var(--border-color);
+    flex-shrink: 0;
+}
+
+label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+}
+
+input, select, textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    font-size: 14px;
+    color: var(--text-main);
+    background-color: #ffffff;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.15);
+}
+
+/* Кнопки */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 18px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background-color 0.2s, transform 0.1s;
+}
+
+.btn:active {
+    transform: scale(0.98);
+}
+
+.btn-primary {
+    background-color: var(--primary);
+    color: #ffffff;
+}
+
+.btn-primary:hover {
+    background-color: var(--primary-hover);
+}
+
+.btn-secondary {
+    background-color: var(--primary-light);
+    color: #0369a1;
+}
+
+.btn-secondary:hover {
+    background-color: #bae6fd;
+}
+
+.btn-danger {
+    background-color: var(--danger);
+    color: #ffffff;
+    padding: 7px 12px;
+    font-size: 13px;
+}
+
+.btn-danger:hover {
+    background-color: var(--danger-hover);
+}
+
+.btn-sm {
+    padding: 7px 12px;
+    font-size: 13px;
+}
+
+/* Таблица товаров */
+.table-wrap {
+    overflow-x: auto;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th {
+    background-color: #f0f9ff;
+    color: #0369a1;
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    padding: 12px 14px;
+    text-align: left;
+    border-bottom: 2px solid var(--border-color);
+}
+
+td {
+    padding: 12px 14px;
+    border-bottom: 1px solid #f1f5f9;
+    font-size: 14px;
+}
+
+tr:hover td {
+    background-color: #f8fafc;
+}
+
+.badge {
+    display: inline-block;
+    background-color: var(--primary-light);
+    color: #0369a1;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.actions form {
+    margin: 0;
+}
+
+
+/* --- АДАПТИВНОСТЬ ДЛЯ МОБИЛЬНЫХ УСТРОЙСТВ --- */
+@media (max-width: 680px) {
+    .topbar {
+        padding: 14px 16px;
+    }
+
+    .topbar h1 {
+        font-size: 18px;
+    }
+
+    .container {
+        margin: 16px auto;
+        padding: 0 12px;
+    }
+
+    .card {
+        padding: 16px;
+        border-radius: 10px;
+        margin-bottom: 16px;
+    }
+
+    /* Поля формы в 1 колонку */
+    .form-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .form-group.full {
+        grid-column: span 1;
+    }
+
+    /* Увеличиваем высоту полей и кнопок для удобного тапа пальцем (минимум 44px) */
+    input, select, textarea, .btn {
+        min-height: 44px;
+        font-size: 16px; /* Предотвращает авто-зум экрана на iPhone при клике в input */
+    }
+
+    .card form > div:last-child .btn,
+    .actions {
+        width: 100%;
+        flex-direction: column;
+    }
+
+    .actions .btn,
+    .actions form {
+        width: 100%;
+    }
+
+    /* Превращаем таблицу товаров в мобильные карточки */
+    table, thead, tbody, th, td, tr {
+        display: block;
+    }
+
+    thead {
+        display: none; /* Прячем шапку таблицы */
+    }
+
+    tr {
+        background: #ffffff;
+        border: 1px solid var(--border-color);
+        border-radius: 10px;
+        padding: 12px 14px;
+        margin-bottom: 12px;
+        box-shadow: 0 2px 6px rgba(14, 165, 233, 0.04);
+    }
+
+    td {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 0;
+        border-bottom: 1px dashed #e2e8f0;
+        text-align: right;
+    }
+
+    td:last-child {
+        border-bottom: none;
+        padding-top: 12px;
+        padding-bottom: 0;
+    }
+
+    /* Подписи полей слева из атрибута data-label */
+    td::before {
+        content: attr(data-label);
+        font-weight: 600;
+        font-size: 12px;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        text-align: left;
+        margin-right: 12px;
+    }
+
+    /* Для ячейки с кнопками подпись не нужна */
+    td.actions::before {
+        display: none;
+    }
+}
+
+
+.container-narrow {
+    max-width: 720px;
+}
+
+.inline-form {
+    display: flex;
+    gap: 10px;
+}
+
+.inline-form button {
+    white-space: nowrap;
+}
+
+.cat-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 14px;
+}
+
+.cat-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--primary-light);
+    color: #0369a1;
+    padding: 6px 12px;
+    border-radius: 999px;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.inline-delete {
+    margin: 0;
+    display: inline;
+}
+
+.inline-delete button {
+    background: none;
+    border: none;
+    color: var(--danger);
+    font-weight: bold;
+    cursor: pointer;
+    padding: 0 2px;
+    font-size: 16px;
+    line-height: 1;
+    min-height: auto;
+}
+
+.inline-delete button:hover {
+    color: var(--danger-hover);
+}
+
+.table-thumb {
+    width: 46px;
+    height: 46px;
+    object-fit: cover;
+    border-radius: 6px;
+}
+
+.current-media {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 8px;
+}
+
+.media-item {
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 6px;
+    background: #f8fafc;
+    text-align: center;
+}
+
+.media-item img {
+    width: 84px;
+    height: 84px;
+    object-fit: cover;
+    border-radius: 6px;
+    display: block;
+}
+
+.media-item span {
+    display: block;
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 4px;
+}
+
+.form-submit-row {
+    margin-top: 18px;
+}
+
+.muted-text {
+    color: var(--text-muted);
+    font-size: 13px;
+}
+
+.empty-cell {
+    text-align: center;
+    color: var(--text-muted);
+    display: block;
+}
+
+@media (max-width: 680px) {
+    .inline-form {
+        flex-direction: column;
+    }
+}
+
+.inline-form input {
+    flex: 1;
+}
+
+/* Панель поиска в списке товаров */
+.search-bar {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 18px;
+}
+
+.search-bar input {
+    flex: 2;
+}
+
+.search-bar select {
+    flex: 1;
+}
+
+.search-bar .btn {
+    white-space: nowrap;
+}
+
+@media (max-width: 680px) {
+    .search-bar {
+        flex-direction: column;
+    }
+}
+
+
+/* Ссылка на товар в таблице */
+.product-link {
+    color: var(--text-main);
+    text-decoration: none;
+    transition: color 0.15s;
+}
+
+.product-link:hover {
+    color: var(--primary-hover);
+    text-decoration: underline;
+}
+
+/* Страница детального просмотра товара */
+.detail-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+    border-bottom: 2px solid var(--primary-light);
+    padding-bottom: 16px;
+    margin-bottom: 20px;
+}
+
+.detail-title {
+    margin: 8px 0 0 0 !important;
+    border: none !important;
+    padding: 0 !important;
+    font-size: 22px !important;
+    color: var(--text-main) !important;
+}
+
+.detail-price {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--primary-hover);
+    white-space: nowrap;
+}
+
+.detail-media-grid {
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    gap: 20px;
+    margin-bottom: 22px;
+}
+
+.detail-main-photo img {
+    width: 100%;
+    height: 220px;
+    object-fit: cover;
+    border-radius: 10px;
+    border: 1px solid var(--border-color);
+}
+
+.no-photo-box {
+    width: 100%;
+    height: 180px;
+    background: #f8fafc;
+    border: 1px dashed #cbd5e1;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    font-size: 13px;
+    text-align: center;
+    padding: 12px;
+}
+
+.gallery-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(95px, 1fr));
+    gap: 10px;
+}
+
+.gallery-grid img {
+    width: 100%;
+    height: 95px;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    transition: transform 0.15s;
+}
+
+.gallery-grid img:hover {
+    transform: scale(1.03);
+}
+
+.detail-specs {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    background: #f0f9ff;
+    padding: 14px 16px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+}
+
+.spec-item {
+    display: flex;
+    flex-direction: column;
+}
+
+.spec-label {
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.spec-value {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-main);
+}
+
+.detail-desc p {
+    margin: 4px 0 0 0;
+    white-space: pre-line;
+    line-height: 1.6;
+}
+
+@media (max-width: 680px) {
+    .detail-header {
+        flex-direction: column;
+    }
+    .detail-media-grid {
+        grid-template-columns: 1fr;
+    }
+    .detail-specs {
+        grid-template-columns: 1fr;
+    }
+}
+
+.btn-danger-lg {
+    background-color: var(--danger);
+    color: #ffffff;
+    padding: 10px 18px;
+    font-family: inherit;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.btn-danger-lg:hover {
+    background-color: var(--danger-hover);
+}
+
+/* Кликабельные фото для открытия в лайтбоксе */
+.js-lightbox-img {
+    cursor: zoom-in;
+    transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.js-lightbox-img:hover {
+    transform: scale(1.02);
+    box-shadow: 0 4px 12px rgba(14, 165, 233, 0.2);
+}
+
+/* Модальное окно просмотра фото */
+.lightbox {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.85);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    z-index: 1000;
+}
+
+.lightbox.open {
+    display: flex;
+}
+
+.lightbox-close {
+    position: fixed;
+    top: 18px;
+    right: 24px;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(255, 255, 255, 0.15);
+    color: #ffffff;
+    font-size: 28px;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s;
+}
+
+.lightbox-close:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.lightbox-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    max-width: 90vw;
+    max-height: 90vh;
+}
+
+.lightbox-content img {
+    max-width: 100%;
+    max-height: 76vh;
+    border-radius: 10px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+    object-fit: contain;
+    background: #ffffff;
+}
+
+.lightbox-actions {
+    display: flex;
+    justify-content: center;
+}
+
+.preview-item {
+    position: relative;
+    width: 68px;
+    height: 68px;
+    flex-shrink: 0;
+}
+
+.preview-remove {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    width: 20px;
+    height: 20px;
+    min-height: auto;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background-color: var(--danger);
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: bold;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.preview-remove:hover {
+    background-color: var(--danger-hover);
+}
+
+.product-row {
+    cursor: pointer;
+    transition: background-color 0.15s, border-color 0.15s;
+}
+
+.product-row:active {
+    background-color: #f0f9ff;
+    border-color: var(--primary);
+}
+
+.product-row {
+    cursor: pointer;
+    transition: background-color 0.15s, border-color 0.15s;
+}
+
+.product-row:active {
+    background-color: #f0f9ff;
+    border-color: var(--primary);
+}
+
+/* Редактирование текущих фото товара */
+.sub-label {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-muted);
+    margin-top: 8px;
+}
+
+.edit-media-box {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: #f8fafc;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 8px 10px;
+    margin-bottom: 6px;
+}
+
+.edit-media-box img {
+    width: 64px;
+    height: 64px;
+    object-fit: cover;
+    border-radius: 6px;
+    flex-shrink: 0;
+}
+
+.checkbox-danger {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--danger);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    margin: 0;
+}
+
+.checkbox-danger input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    min-height: auto;
+    accent-color: var(--danger);
+    cursor: pointer;
+}
+
+.edit-gallery-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 6px;
+}
+
+.edit-gal-item {
+    position: relative;
+    width: 74px;
+    cursor: pointer;
+    border-radius: 8px;
+    border: 2px solid var(--border-color);
+    padding: 3px;
+    background: #ffffff;
+    transition: border-color 0.15s, opacity 0.15s;
+}
+
+.edit-gal-item img {
+    width: 100%;
+    height: 64px;
+    object-fit: cover;
+    border-radius: 5px;
+    display: block;
+}
+
+.edit-gal-item .del-img-cb {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 18px;
+    height: 18px;
+    min-height: auto;
+    margin: 0;
+    accent-color: var(--danger);
+    cursor: pointer;
+}
+
+.edit-gal-item .del-badge {
+    display: block;
+    text-align: center;
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 3px;
+}
+
+/* Визуальная подсветка фото, отмеченного на удаление */
+.edit-gal-item:has(.del-img-cb:checked) {
+    border-color: var(--danger);
+    background-color: #fef2f2;
+    opacity: 0.65;
+}
+
+.edit-gal-item:has(.del-img-cb:checked) .del-badge {
+    color: var(--danger);
+    font-weight: 700;
+}

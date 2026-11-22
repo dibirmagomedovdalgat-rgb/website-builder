@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Мои заказы{% endblock %}
+
+{% block content %}
+  <h1 class="page-title">Мои заказы</h1>
+
+  {% if orders %}
+    {% for order in orders %}
+      <div class="order-card">
+        <div class="order-header">
+          <div>
+            <strong>Заказ №{{ order.id }}</strong>
+            {% if order.created_at %}
+              <span class="stock" style="margin-left: 8px;">
+                от {{ order.created_at.strftime('%d.%m.%Y %H:%M') }}
+              </span>
+            {% endif %}
+          </div>
+          <span class="status-badge">
+            {{ order.status.value if order.status.value is defined else order.status }}
+          </span>
+        </div>
+
+        <ul class="order-items-list">
+          {% for item in order.items %}
+            <li>
+              <span>{{ item.product_name }} × {{ item.quantity }} шт.</span>
+              <span>{{ item.price * item.quantity }} ₽</span>
+            </li>
+          {% endfor %}
+        </ul>
+
+        <div style="font-size: 0.9rem; color: var(--muted); margin-bottom: 12px;">
+          <div>Адрес: {{ order.delivery_address or "Самовывоз" }}</div>
+          {% if order.comment %}
+            <div>Комментарий: {{ order.comment }}</div>
+          {% endif %}
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <div>Итого: <strong>{{ order.total_price }} ₽</strong></div>
+
+          {% set status_str = order.status.name if order.status.name is defined else order.status|string %}
+          {% if status_str in ["NEW", "PENDING", "Новый"] %}
+            <button
+              type="button"
+              class="btn btn-danger btn-sm"
+              data-action="cancel-order"
+              data-order-id="{{ order.id }}"
+            >
+              Отменить заказ
+            </button>
+          {% endif %}
+        </div>
+      </div>
+    {% endfor %}
+  {% else %}
+    <div class="card-box">
+      <p style="margin-top: 0;">У вас пока нет оформленных заказов.</p>
+      <a href="/" class="btn btn-primary">Перейти к покупкам</a>
+    </div>
+  {% endif %}
+{% endblock %}

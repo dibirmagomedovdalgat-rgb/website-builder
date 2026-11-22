@@ -2,11 +2,11 @@ import bcrypt
 from fastapi import APIRouter, Depends, HTTPException, status, Response 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, or_
-from sqlalchemy.exc import IntegrityError
 from app.database import get_db
 from app.users.models import User
-from app.users.schemas import UserCreate, UserResponse, UserLogin
-from app.users.auth import create_access_token
+from app.users.schemas import UserBase, UserCreate, UserResponse, UserLogin
+from app.users.auth import create_access_token, get_current_user
+
 
 router = APIRouter(prefix="/users", tags=["Пользователи"])
 
@@ -104,3 +104,57 @@ async def login(
         samesite="lax" # Защита от межсайтовых подделок
     )
     return {"message": "Вход успешно выполнен", "user_name": user.name} # Ответ если все прошло успешно
+
+@router.patch("/me", response_model=UserResponse)
+async def update_my_profile(
+    profile_data: UserBase,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    new_name = profile_data.name.strip()
+    new_email = profile_data.email.strip()
+    new_phone = profile_data.phone.strip() if profile_data.phone and profile_data.phone.strip() else None
+    new_bio = profile_data.bio.strip() if profile_data.bio and profile_data.bio.strip() else None
+
+    if len(new_name) < 2:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Никнейм / Имя должно содержать минимум 2 символа",
+        )
+
+    conditions = [
+        User.name == new_name,
+        User.email == new_email,
+    ]
+    if new_phone:
+        conditions.append(User.phone == new_phone)
+
+    query = select(User).where(User.id != current_user.id, or_(*conditions))
+    result = await db.execute(query)
+    conflicts = result.scalars().all()
+
+    for conflict in conflicts:
+        if conflict.name == new_name:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Этот никнейм уже занят другим пользователем",
+            )
+        if conflict.email == new_email:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Этот email уже используется другим пользователем",
+            )
+        if new_phone and conflict.phone == new_phone:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Этот номер телефона уже привязан к другому аккаунту",
+            )
+
+    current_user.name = new_name
+    current_user.email = new_email
+    current_user.phone = new_phone
+    current_user.bio = new_bio
+
+    await db.commit()
+    await db.refresh(current_user)
+    return current_user

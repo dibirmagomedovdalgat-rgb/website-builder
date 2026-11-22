@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block title %}{{ product.title }}{% endblock %}
+
+{% block content %}
+  <p style="margin-bottom: 16px;">
+    <a href="/" class="btn btn-outline btn-sm">← Назад в каталог</a>
+  </p>
+
+  <div class="detail-layout">
+    <div>
+      {% set main_src = '' %}
+      {% if product.preview_image %}
+        {% set main_src = product.preview_image if product.preview_image.startswith('/') else '/' + product.preview_image %}
+      {% elif product.images %}
+        {% set first_img = product.images[0].image_path %}
+        {% set main_src = first_img if first_img.startswith('/') else '/' + first_img %}
+      {% endif %}
+
+      {% if main_src %}
+        <img id="main-product-image" src="{{ main_src }}" alt="{{ product.title }}" class="gallery-main" />
+      {% else %}
+        <div class="product-placeholder" style="height: 360px; border-radius: 10px;">Нет изображения</div>
+      {% endif %}
+
+      {% if product.preview_image or product.images %}
+        <div class="gallery-thumbs">
+          {% if product.preview_image %}
+            {% set prev_src = product.preview_image if product.preview_image.startswith('/') else '/' + product.preview_image %}
+            <img src="{{ prev_src }}" data-gallery-src="{{ prev_src }}" class="gallery-thumb active" alt="Фото" />
+          {% endif %}
+          {% for img in product.images %}
+            {% set g_src = img.image_path if img.image_path.startswith('/') else '/' + img.image_path %}
+            <img src="{{ g_src }}" data-gallery-src="{{ g_src }}" class="gallery-thumb" alt="Доп. фото" />
+          {% endfor %}
+        </div>
+      {% endif %}
+    </div>
+
+    <div>
+      <div class="product-cat">{{ product.category_title }}</div>
+      <h1 class="page-title" style="margin-top: 4px;">{{ product.title }}</h1>
+
+      <div class="price" style="font-size: 1.6rem; margin-bottom: 8px;">{{ product.price }} ₽</div>
+
+      {% if product.quantity > 0 %}
+        <div class="stock" style="margin-bottom: 16px;">Остаток на складе: {{ product.quantity }} шт.</div>
+      {% else %}
+        <div class="stock out" style="margin-bottom: 16px;">Товар закончился</div>
+      {% endif %}
+
+      <p style="color: #374151; white-space: pre-line;">
+        {{ product.description or "Описание товара пока не добавлено." }}
+      </p>
+
+      <div
+        class="in-cart-hint"
+        data-in-cart-id="{{ product.id }}"
+        data-qty="{{ in_cart_qty }}"
+        style="margin-top: 16px;"
+        {% if in_cart_qty == 0 %}hidden{% endif %}
+      >
+        Уже в вашей корзине: {{ in_cart_qty }} шт.
+      </div>
+
+      {% if product.quantity > 0 %}
+        <div class="buy-bar">
+          <input
+            type="number"
+            id="detail-qty-input"
+            class="input qty-input"
+            value="1"
+            min="1"
+            max="{{ product.quantity }}"
+          />
+          <button
+            type="button"
+            class="btn btn-primary"
+            data-action="add-to-cart"
+            data-product-id="{{ product.id }}"
+          >
+            Добавить в корзину
+          </button>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+{% endblock %}

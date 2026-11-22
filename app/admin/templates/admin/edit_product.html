@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Редактирование товара — #{{ product.id }}</title>
+    <link rel="stylesheet" href="/admin/static/admin.css">
+</head>
+<body>
+
+<header class="topbar">
+    <div class="topbar-inner">
+        <h1>Панель управления</h1>
+        <span>Товар #{{ product.id }}</span>
+    </div>
+</header>
+
+<div class="container container-narrow">
+    <div class="card">
+        <h2>Редактировать: {{ product.title }}</h2>
+
+        <form method="POST" action="/admin/products/{{ product.id }}/edit" enctype="multipart/form-data">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Название товара *</label>
+                    <input type="text" name="title" value="{{ product.title }}" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Категория</label>
+                    <select name="category_id">
+                        <option value="">Без категории</option>
+                        {% for cat in categories %}
+                            <option value="{{ cat.id }}" {% if product.category_id == cat.id %}selected{% endif %}>
+                                {{ cat.title }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Цена (₽) *</label>
+                    <input type="number" name="price" value="{{ product.price }}" min="0" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Количество (шт.) *</label>
+                    <input type="number" name="quantity" value="{{ product.quantity }}" min="0" required>
+                </div>
+
+                <div class="form-group full">
+                    <label>Описание</label>
+                    <textarea name="description" rows="4">{{ product.description or '' }}</textarea>
+                </div>
+
+                <!-- БЛОК УПРАВЛЕНИЯ ГЛАВНЫМ ФОТО (ПРЕВЬЮ) -->
+                <div class="form-group">
+                    <label>Главное фото (превью)</label>
+                    {% if product.preview_image %}
+                        <div class="edit-media-box" id="currentPreviewBox">
+                            <img src="/{{ product.preview_image }}" alt="Текущее превью">
+                            <label class="checkbox-danger">
+                                <input type="checkbox" name="remove_preview" value="1" id="removePreviewCb">
+                                Удалить текущее превью
+                            </label>
+                        </div>
+                    {% else %}
+                        <p class="muted-text" style="margin: 4px 0 8px;">Текущее превью не задано</p>
+                    {% endif %}
+
+                    <label class="sub-label">Загрузить новое превью (заменит старое)</label>
+                    <input type="file" name="preview_file" id="previewInput" accept="image/*">
+                    <div id="previewThumb" class="preview-box"></div>
+                </div>
+
+                <!-- БЛОК УПРАВЛЕНИЯ ГАЛЕРЕЕЙ -->
+                <div class="form-group">
+                    <label>Галерея (дополнительные фото)</label>
+                    {% if product.images %}
+                        <div class="edit-gallery-list">
+                            {% for img in product.images %}
+                                <label class="edit-gal-item" title="Нажмите, чтобы пометить на удаление">
+                                    <input type="checkbox" name="delete_image_ids" value="{{ img.id }}" class="del-img-cb">
+                                    <img src="/{{ img.image_path }}" alt="Фото #{{ loop.index }}">
+                                    <span class="del-badge">Удалить</span>
+                                </label>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="muted-text" style="margin: 4px 0 8px;">В галерее пока нет фото</p>
+                    {% endif %}
+
+                    <label class="sub-label">Добавить новые фото в галерею</label>
+                    <input type="file" name="gallery_files" id="galleryInput" accept="image/*" multiple>
+                    <div id="galleryThumbs" class="preview-box"></div>
+                </div>
+            </div>
+
+            <div class="actions form-submit-row">
+                <button type="submit" class="btn btn-primary">Сохранить изменения</button>
+                <a href="/admin" class="btn btn-secondary">← Назад в каталог</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script src="/admin/static/admin.js" defer></script>
+</body>
+</html>

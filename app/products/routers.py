@@ -1,7 +1,5 @@
 import shutil
 import uuid
-import time
-from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, UploadFile, status
 from typing import List, Union
@@ -13,7 +11,6 @@ from app.products.models import Product, ProductImage, Category, TempUpload
 from app.products.schemas import (ProductResponse, ProductShortResponse, ProductCreate, CategoryCreate, CategoryResponse, TempUploadResponse,)
 from app.users.auth import get_current_user
 from app.users.services import is_admin
-from PIL import Image, ImageOps
 from app.products.services import (BASE_DIR, TEMP_DIR, validate_and_process_image, get_verified_temp_file, clean_expired_temp_files,)
 
 # Это типо путь: /products автоматически ставится везде. Если к примеру @router.post("/register") то будет products/register
@@ -201,29 +198,29 @@ async def create_product(
                 detail="Одно или несколько изображений галереи не найдены или недоступны."
             )
 
-        final_gallery_dir = BASE_DIR / "img" / "gallery"  # Куда сохранять
-        final_gallery_dir.mkdir(parents=True, exist_ok=True)  # Создается папка если ее нет
+        final_gallery_dir = BASE_DIR / "img" / "gallery" # Куда сохранять
+        final_gallery_dir.mkdir(parents=True, exist_ok=True) # Создается папка если ее нет
 
         for uid in upload_ids:  # Цикл по Id
             rec = gallery_records[uid]
-            temp_gallery_path = get_verified_temp_file(rec.filename)  # Проверка файла и получение его пути во временной папке
-            final_gallery_file = final_gallery_dir / temp_gallery_path.name  # Готовый путь файла для постоянной папки
-            shutil.move(str(temp_gallery_path), str(final_gallery_file))  # Перенос из временной папки в постоянную
-            final_gallery_db_path = f"img/gallery/{temp_gallery_path.name}"  # Путь для записи в бд
+            temp_gallery_path = get_verified_temp_file(rec.filename) # Проверка файла и получение его пути во временной папке
+            final_gallery_file = final_gallery_dir / temp_gallery_path.name # Готовый путь файла для постоянной папки
+            shutil.move(str(temp_gallery_path), str(final_gallery_file)) # Перенос из временной папки в постоянную
+            final_gallery_db_path = f"img/gallery/{temp_gallery_path.name}" # Путь для записи в бд
             
             # Создаем объект модели картинки и крепим через связь .append() к нашему товару
             db_image = ProductImage(image_path=final_gallery_db_path) # Запись картинки для бд
             new_product.images.append(db_image) # Привязывание картинки к товару
-            records_to_delete.append(rec)  # Добавление в список на удаление
+            records_to_delete.append(rec) # Добавление в список на удаление
 
     # Удаление временных записей с бд
     for rec in records_to_delete:
         await db.delete(rec)
         
-    db.add(new_product)  # Добавление товара в сессию бд
-    await db.commit()  # Сохранение в бд
-    await db.refresh(new_product, attribute_names=["images", "category"])  # Обновление информации
-    background_tasks.add_task(clean_expired_temp_files)  # Удаление мусора
+    db.add(new_product) # Добавление товара в сессию бд
+    await db.commit() # Сохранение в бд
+    await db.refresh(new_product, attribute_names=["images", "category"]) # Обновление информации
+    background_tasks.add_task(clean_expired_temp_files) # Удаление мусора
     
     return new_product
 
@@ -281,3 +278,55 @@ async def delete_category(category_id: int, db: AsyncSession = Depends(get_db)):
 
     await db.delete(category)
     await db.commit()
+
+# Удаление товара
+@router.delete(
+    "/{product_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(get_current_user), Depends(is_admin)],
+)
+async def delete_product(product_id: int, db: AsyncSession = Depends(get_db)):
+    query = select(Product).where(Product.id == product_id)
+    result = await db.execute(query)
+    product = result.scalar_one_or_none()
+
+    if not product:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Товар не найден"
+        )
+
+    await db.delete(product)
+    await db.commit()
+
+
+# Обновление данных товара
+@router.patch(
+    "/{product_id}",
+    response_model=ProductResponse,
+    dependencies=[Depends(get_current_user), Depends(is_admin)],
+)
+async def update_product(
+    product_id: int,
+    product_data: ProductCreate,
+    db: AsyncSession = Depends(get_db),
+):
+    query = (
+        select(Product)
+        .where(Product.id == product_id)
+        .options(joinedload(Product.images), joinedload(Product.category))
+    )
+    result = await db.execute(query)
+    product = result.scalars().unique().first()
+    if not product:
+        raise HTTPException(status_code=404, detail="Товар не найден")
+
+    product.title = product_data.title
+    product.description = product_data.description
+    product.price = product_data.price
+    product.quantity = product_data.quantity
+    product.category_id = product_data.category_id
+
+    await db.commit()
+    await db.refresh(product, attribute_names=["images", "category"])
+    return product
