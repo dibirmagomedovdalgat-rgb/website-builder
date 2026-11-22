@@ -13,3 +13,5 @@ Thumbs.db
 .vscode/
 img/
 nginx/active.conf.template
+app/store/static/*.css
+!app/store/static/default.css
